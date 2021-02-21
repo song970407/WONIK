@@ -116,7 +116,8 @@ def main(file_src):
         print('Time computation : {}'.format(end - start))
         print('Average ws is {}'.format(workset.mean()))
         optimized_worksets.append(workset)
-
+    optimized_worksets = np.stack(optimized_worksets)
+    np.save('ICPreCo_01_WS.npy', optimized_worksets)
 
 if __name__ == '__main__':
     validate_src = 'experiment_result/ICPreCo_01.csv'
