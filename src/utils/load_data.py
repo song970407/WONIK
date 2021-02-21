@@ -11,7 +11,8 @@ def load_data(paths: Union[str, List[str]],
               action_ws: bool = True,
               preprocess: bool = False,
               history_x: int = 1,
-              history_u: int = 1):
+              history_u: int = 1,
+              device: str = 'cpu'):
     if isinstance(paths, str):
         paths = [paths]
     states = []
@@ -74,7 +75,8 @@ def load_data(paths: Union[str, List[str]],
 
         info['scale_min'] = sa_min
         info['scale_max'] = sa_max
-
+    states = states.to(device)
+    actions = actions.to(device)
     return states, actions, info
 
 

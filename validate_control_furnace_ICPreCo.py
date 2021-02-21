@@ -67,7 +67,8 @@ def main(file_src):
                                                                history_len=history_len,
                                                                future_len=future_len,
                                                                action_ws=action_ws,
-                                                               scaling=False)
+                                                               scaling=False,
+                                                               device=device)
     print(hist_x.shape)
     print(future_x.shape)
     print(hist_u.shape)

@@ -71,7 +71,8 @@ def main(file_src, horizon):
                                                      scaling=False,
                                                      preprocess=True,
                                                      history_x=state_order,
-                                                     history_u=action_order)
+                                                     history_u=action_order,
+                                                     device=device)
     validate_states = validate_states[0][:, :state_dim]
     validate_actions = validate_actions[0]
     print(validate_states.shape)

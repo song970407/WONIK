@@ -143,6 +143,7 @@ def load_validate_data(paths: Union[str, List[str]],
                        state_scaler: Tuple[float, float] = None,
                        action_scaler: Tuple[float, float] = None,
                        action_ws: bool = True,
+                       device: str = 'cpu',
                        step_names_mode: str = 'or'):
     """
     Args:
@@ -234,7 +235,10 @@ def load_validate_data(paths: Union[str, List[str]],
 
         info['state_scaler'] = (state_min, state_max)
         info['action_scaler'] = (action_min, action_max)
-
+    hist_x = hist_x.to(device)
+    future_x = future_x.to(device)
+    hist_u = hist_u.to(device)
+    future_u = future_u.to(device)
     return hist_x, future_x, hist_u, future_u, info
 
 
