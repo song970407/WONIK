@@ -116,8 +116,8 @@ def main(file_src, horizon):
         print('Time computation : {}'.format(end - start))
         print('Target tc is {}'.format(target[t:t + H, :].mean()))
         print('Average ws is {}'.format(workset.mean()))
-    optimized_workset = np.stack(optimized_workset)
-    np.save('multilinear_step_'+str(horizon)+'_WS.npy', optimized_workset)
+    optimized_workset = torch.stack(optimized_workset)
+    torch.save(optimized_workset, 'multilinear_step_'+str(horizon)+'_WS.pt')
 
 if __name__ == '__main__':
     validate_srcs = ['experiment_result/Multistep_Linear_01.csv', 'experiment_result/Multistep_Linear_02.csv',
