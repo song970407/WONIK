@@ -33,8 +33,8 @@ def load_data(paths: Union[str, List[str]],
         assert len(state_nan_cols) == 0, "Some of state columns contain NaNs."
         assert len(action_nan_cols) == 0, "Some of action columns contain NaNs."
 
-        state = torch.tensor(state_df.to_numpy()).float()
-        action = torch.tensor(action_df.to_numpy()).float()
+        state = torch.tensor(state_df.to_numpy()).float().to(device)
+        action = torch.tensor(action_df.to_numpy()).float().to(device)
 
         info = {
             'states_cols': state_cols,
@@ -75,8 +75,6 @@ def load_data(paths: Union[str, List[str]],
 
         info['scale_min'] = sa_min
         info['scale_max'] = sa_max
-    states = states.to(device)
-    actions = actions.to(device)
     return states, actions, info
 
 
