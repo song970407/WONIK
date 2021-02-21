@@ -92,6 +92,9 @@ def main():
     runner = Runner(g=g, m=m,
                     optimizer_mode=optimizer_mode, state_scaler=state_scaler, action_scaler=action_scaler,
                     alpha=alpha, timeout=time_limit)
+    worksets = []
+    observed_tcs = []
+    T = 50
     for t in range(T-H):
         print("Now time [{}] / [{}]".format(t, T-H))
         start = time.time()
@@ -114,9 +117,14 @@ def main():
         print('Target tc is {}'.format(now_target))
         print('Average tc is {}'.format(observed_tc.mean()))
         print('Average ws is {}'.format(workset.mean()))
+        observed_tcs.append(observed_tc)
+        worksets.append(workset)
         history_tc = np.concatenate([history_tc[:, 1:, :], observed_tc], axis=1)
         history_ws = np.concatenate([history_ws[:, 1:, :], workset], axis=1)
-
+    observed_tcs = np.stack(observed_tcs)
+    worksets = np.stack(worksets)
+    print(observed_tcs.shape)
+    print(worksets.shape)
 
 if __name__ == '__main__':
     main()

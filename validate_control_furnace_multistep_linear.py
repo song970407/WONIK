@@ -112,12 +112,13 @@ def main(file_src, horizon):
         workset = runner.solve(validate_states[t:t + state_order], validate_actions[t:t + action_order - 1],
                                target[t:t + H, :])  # [1 x 40] torch.Tensor, use this workset to the furnace
         end = time.time()
+        workset = workset * (scaler[1] - scaler[0]) + scaler[0]
         optimized_workset.append(workset)
         print('Time computation : {}'.format(end - start))
         print('Target tc is {}'.format(target[t:t + H, :].mean()))
         print('Average ws is {}'.format(workset.mean()))
     optimized_workset = torch.stack(optimized_workset)
-    torch.save(optimized_workset, 'multilinear_step_'+str(horizon)+'_WS.pt')
+    torch.save(optimized_workset, 'multistep_linear_'+str(horizon)+'_WS.pt')
 
 if __name__ == '__main__':
     validate_srcs = ['experiment_result/Multistep_Linear_01.csv', 'experiment_result/Multistep_Linear_02.csv',
