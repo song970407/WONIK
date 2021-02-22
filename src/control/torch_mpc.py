@@ -20,6 +20,7 @@ class Actions(nn.Module):
     def forward(self):
         return self.us
 
+
 class Linear_Actions(nn.Module):
     def __init__(self,
                  num_actions: int,
@@ -34,6 +35,7 @@ class Linear_Actions(nn.Module):
 
     def forward(self):
         return self.us
+
 
 def get_discount_factor(horizon_length, gamma):
     g = 1.0
@@ -159,6 +161,7 @@ class TorchMPC(nn.Module):
 
     def solve_max_entropy(self, graph, history):
         pass
+
 
 class LinearTorchMPC(nn.Module):
 
