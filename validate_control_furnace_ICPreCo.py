@@ -39,7 +39,7 @@ class Runner:
         return action()[:, 0:1, :]
 
 
-def main(file_src):
+def main(file_src, horizon, idx):
     # Setting
     config_filename = 'model/ICPreCo/model_config.yaml'
     config = Box.from_yaml(filename=config_filename)
@@ -65,7 +65,7 @@ def main(file_src):
 
     hist_x, future_x, hist_u, future_u, _ = load_validate_data(paths=file_src,
                                                                history_len=history_len,
-                                                               future_len=future_len,
+                                                               future_len=horizon,
                                                                action_ws=action_ws,
                                                                scaling=False,
                                                                device=device)
@@ -80,7 +80,7 @@ def main(file_src):
     print('Min. state scaler: {}, Max. state scaler: {}'.format(state_scaler[0], state_scaler[1]))
     print('Min. action scaler: {}, Max. action scaler: {}'.format(action_scaler[0], action_scaler[1]))
 
-    H = 10  # receding horizon
+    H = horizon  # receding horizon
     alpha = 1  # workset smoothness
     time_limit = 5  # seconds
     optimizer_mode = 'LBFGS'
@@ -117,8 +117,10 @@ def main(file_src):
         print('Average ws is {}'.format(workset.mean()))
         optimized_worksets.append(workset)
     optimized_worksets = torch.stack(optimized_worksets)
-    torch.save(optimized_worksets, 'ICPreCo_01_WS.pt')
+    torch.save(optimized_worksets, 'validate_workset/ICPreCo_2'+str(idx+1)+'_WS.pt')
 
 if __name__ == '__main__':
-    validate_src = 'experiment_result/ICPreCo_01.csv'
-    main(validate_src)
+    validate_srcs = ['experiment_result/ICPreCo_01.csv', 'experiment_result/ICPreCo_02.csv']
+    Hs = [10, 70]
+    for i in range(len(validate_srcs)):
+        main(validate_srcs[i], Hs[i], i)

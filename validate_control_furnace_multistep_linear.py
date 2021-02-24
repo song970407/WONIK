@@ -41,7 +41,7 @@ class Runner:
         return action()[0:1, :]
 
 
-def main(file_src, horizon):
+def main(file_src, horizon, idx):
     # Setting
     state_dim = 140
     action_dim = 40
@@ -118,11 +118,11 @@ def main(file_src, horizon):
         print('Target tc is {}'.format(target[t:t + H, :].mean()))
         print('Average ws is {}'.format(workset.mean()))
     optimized_workset = torch.stack(optimized_workset)
-    torch.save(optimized_workset, 'multistep_linear_'+str(horizon)+'_WS.pt')
+    torch.save(optimized_workset, 'validate_workset/multistep_linear_2'+str(idx+1)+'_WS.pt')
 
 if __name__ == '__main__':
     validate_srcs = ['experiment_result/Multistep_Linear_01.csv', 'experiment_result/Multistep_Linear_02.csv',
                      'experiment_result/Multistep_Linear_03.csv']
     Hs = [10, 50, 75]
     for i in range(len(validate_srcs)):
-        main(validate_srcs[i], Hs[i])
+        main(validate_srcs[i], Hs[i], i)
