@@ -12,9 +12,8 @@ class Actions(nn.Module):
                  u_min: float,
                  u_max: float):
         super(Actions, self).__init__()
-        us = np.random.uniform(low=u_min,
-                               high=u_max,
-                               size=(num_actions, H, action_dim))
+        # us = np.random.uniform(low=u_min, high=u_max, size=(num_actions, H, action_dim))
+        us = np.ones((num_actions, H, action_dim)) * (u_max + u_min) / 2
         self.us = torch.nn.Parameter(torch.from_numpy(us).float())
 
     def forward(self):
@@ -28,9 +27,8 @@ class Linear_Actions(nn.Module):
                  u_min: float,
                  u_max: float):
         super(Linear_Actions, self).__init__()
-        us = np.random.uniform(low=u_min,
-                               high=u_max,
-                               size=(H, num_actions))
+        # us = np.random.uniform(low=u_min, high=u_max, size=(H, num_actions))
+        us = np.ones((H, num_actions)) * (u_max + u_min) / 2
         self.us = torch.nn.Parameter(torch.from_numpy(us).float())
 
     def forward(self):
