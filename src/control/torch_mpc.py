@@ -6,14 +6,16 @@ import torch.nn as nn
 
 class Actions(nn.Module):
     def __init__(self,
+                 ref: torch.tensor,  # [H] torch.tensor
                  num_actions: int,
-                 H: int,
                  action_dim: int,
                  u_min: float,
                  u_max: float):
         super(Actions, self).__init__()
-        # us = np.random.uniform(low=u_min, high=u_max, size=(num_actions, H, action_dim))
-        us = np.ones((num_actions, H, action_dim)) * (u_max + u_min) / 2
+        us = np.reshape(ref.cpu().detach().numpy(), (1, -1, 1))
+        us = np.repeat(us, num_actions, axis=0)
+        us = np.repeat(us, action_dim, axis=2)
+        us = np.clip(us, u_min, u_max)
         self.us = torch.nn.Parameter(torch.from_numpy(us).float())
 
     def forward(self):
@@ -22,13 +24,15 @@ class Actions(nn.Module):
 
 class Linear_Actions(nn.Module):
     def __init__(self,
+                 ref: torch.tensor,  # [H] torch.tensor
                  num_actions: int,
-                 H: int,
                  u_min: float,
                  u_max: float):
         super(Linear_Actions, self).__init__()
         # us = np.random.uniform(low=u_min, high=u_max, size=(H, num_actions))
-        us = np.ones((H, num_actions)) * (u_max + u_min) / 2
+        us = np.reshape(ref.cpu().detach().numpy(), (-1, 1))
+        us = np.repeat(us, num_actions, axis=1)
+        us = np.clip(us, u_min, u_max)
         self.us = torch.nn.Parameter(torch.from_numpy(us).float())
 
     def forward(self):
@@ -90,7 +94,7 @@ class TorchMPC(nn.Module):
         gamma_mask = get_discount_factor(target.shape[1], 1.0).view(1, -1).to(self.device)
 
         with stopit.ThreadingTimeout(self.timeout) as to_ctx_mgr:
-            us = Actions(history[1].shape[0], target.shape[1], 1, self.u_min, self.u_max).to(self.device)
+            us = Actions(target[0, :], history[1].shape[0], 1, self.u_min, self.u_max).to(self.device)
             opt = torch.optim.Adam(us.parameters(), lr=1e-3)
 
             with torch.no_grad():
@@ -115,7 +119,7 @@ class TorchMPC(nn.Module):
         gamma_mask = get_discount_factor(target.shape[1], 1.0).view(1, -1).to(self.device)
 
         with stopit.ThreadingTimeout(self.timeout) as to_ctx_mgr:
-            us = Actions(history[1].shape[0], target.shape[1], 1, self.u_min, self.u_max).to(self.device)
+            us = Actions(target[0, :], history[1].shape[0], 1, self.u_min, self.u_max).to(self.device)
             opt = torch.optim.LBFGS(us.parameters(),
                                     history_size=15,
                                     max_iter=self.max_iter,
@@ -195,7 +199,7 @@ class LinearTorchMPC(nn.Module):
     def solve_mpc_adam(self, history_tc, history_ws, target):
         crit = torch.nn.MSELoss()
         with stopit.ThreadingTimeout(self.timeout) as to_ctx_mgr:
-            us = Linear_Actions(history_ws.shape[1], target.shape[0], self.u_min, self.u_max).to(self.device)
+            us = Linear_Actions(target[:, 0], history_ws.shape[1], self.u_min, self.u_max).to(self.device)
             opt = torch.optim.Adam(us.parameters(), lr=1e-3)
             for i in range(self.max_iter):
                 opt.zero_grad()
@@ -221,7 +225,7 @@ class LinearTorchMPC(nn.Module):
         """
         crit = torch.nn.MSELoss()
         with stopit.ThreadingTimeout(self.timeout) as to_ctx_mgr:
-            us = Linear_Actions(history_ws.shape[1], target.shape[0], self.u_min, self.u_max).to(self.device)
+            us = Linear_Actions(target[:, 0], history_ws.shape[1], self.u_min, self.u_max).to(self.device)
             opt = torch.optim.LBFGS(us.parameters(),
                                     history_size=15,
                                     max_iter=self.max_iter,
