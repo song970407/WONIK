@@ -117,7 +117,7 @@ def main(file_src, horizon, idx):
         print('Average ws is {}'.format(workset.mean()))
         optimized_worksets.append(workset)
     optimized_worksets = torch.stack(optimized_worksets)
-    torch.save(optimized_worksets, 'validate_workset/ICPreCo_2'+str(idx+1)+'_WS.pt')
+    torch.save(optimized_worksets, 'validate_workset/ICPreCo_1'+str(idx+1)+'_WS_fixed.pt')
 
 if __name__ == '__main__':
     validate_srcs = ['experiment_result/ICPreCo_01.csv', 'experiment_result/ICPreCo_02.csv']

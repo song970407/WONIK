@@ -118,7 +118,7 @@ def main(file_src, horizon, idx):
         print('Target tc is {}'.format(target[t:t + H, :].mean()))
         print('Average ws is {}'.format(workset.mean()))
     optimized_workset = torch.stack(optimized_workset)
-    torch.save(optimized_workset, 'validate_workset/multistep_linear_2'+str(idx+1)+'_WS.pt')
+    torch.save(optimized_workset, 'validate_workset/multistep_linear_1'+str(idx+1)+'_WS_fixed.pt')
 
 if __name__ == '__main__':
     validate_srcs = ['experiment_result/Multistep_Linear_01.csv', 'experiment_result/Multistep_Linear_02.csv',
