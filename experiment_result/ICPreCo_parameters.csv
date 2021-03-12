@@ -1,0 +1,5 @@
+number,alpha,H,weight_alpha,initial_fixed
+1,1,10,1,0
+2,1,75,1,0
+3,0.001,70,1,0
+4,1,70,1,1
