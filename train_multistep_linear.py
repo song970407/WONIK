@@ -22,7 +22,7 @@ H = 50
 
 m = get_arimax_model(state_dim, action_dim, state_order, action_order).to(DEVICE)
 
-train_data_path = ['docs/new_data/grnn/data_3.csv', 'docs/new_data/icgrnn/data_3.csv', 'docs/new_data/expert/data_3.csv']
+train_data_path = ['docs/new_data/grnn/data_3.csv', 'docs/new_data/icgrnn/data_3.csv']
                    #,'docs/new_data/icgrnn/data_1.csv', 'docs/new_data/linear/data_1.csv']
 test_data_path = ['docs/new_data/icgrnn/data_4.csv', 'docs/new_data/expert/data_4.csv']
                   #'docs/new_data/icgrnn/data_2.csv', 'docs/new_data/linear/data_2.csv']
@@ -81,7 +81,7 @@ train_loader = DataLoader(train_ds, batch_size=BS, shuffle=True)
 opt = torch.optim.Adam(m.parameters(), lr=0.001)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(opt, T_0=10)
 iters = len(train_loader)
-EPOCHS = 1000
+EPOCHS = 500
 TEST_EVERY = 100
 run = wandb.init(entity='sentinel',
                  name='State Order ' + str(state_order) + ' Action Order ' + str(action_order) + ' H ' + str(H),
