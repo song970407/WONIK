@@ -3,6 +3,7 @@ import stopit
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import time
 
 class Actions(nn.Module):
     def __init__(self,
@@ -201,7 +202,11 @@ class LinearTorchMPC(nn.Module):
         self.opt_config = opt_config
 
     def solve_mpc_adam(self, history_tc, history_ws, target, weight=None):
-        crit = torch.nn.MSELoss(reduction='none')
+        start = time.time()
+        trajectory_us_value = []
+        trajectory_us_gradient = []
+        trajectory_loss_objective = []
+        trajectory_loss_delta_u = []
         gamma_mask = get_discount_factor(target.shape[0], 1.0).view(1, -1).to(self.device)
         gamma_mask = torch.transpose(gamma_mask, 0, 1)
         with stopit.ThreadingTimeout(self.timeout) as to_ctx_mgr:
@@ -210,18 +215,29 @@ class LinearTorchMPC(nn.Module):
             for i in range(self.max_iter):
                 opt.zero_grad()
                 prediction = self.predict_future(history_tc, history_ws, us())
-                loss = F.relu(prediction - target) * weight[:, :, 1] - F.relu(target - prediction) * weight[:, :, 0]
-                loss = ((loss ** 2) * gamma_mask).sum()
+                loss_objective = F.relu(prediction - target) * weight[:, :, 1] - F.relu(target - prediction) * weight[:, :, 0]
+                loss_objective = ((loss_objective ** 2) * gamma_mask).sum()
                 init_concat_us = torch.cat([history_ws[-1:, :], us()], dim=0)
-                delta_u_loss = (init_concat_us[1:, :] - init_concat_us[:-1, :]).pow(2).sum()
-                loss = loss + self.alpha * delta_u_loss
+                loss_delta_u = (init_concat_us[1:, :] - init_concat_us[:-1, :]).pow(2).sum()
+                loss_delta_u = self.alpha * loss_delta_u
+                loss = loss_objective + loss_delta_u
                 loss.backward()
                 opt.step()
                 us.us.data = us.us.data.clamp(min=self.u_min, max=self.u_max)
-
+                trajectory_us_value.append(us.us.data.cpu().detach())
+                trajectory_us_gradient.append(us.us.grad.data.cpu().detach())
+                trajectory_loss_objective.append(loss_objective.cpu().detach())
+                trajectory_loss_delta_u.append(loss_delta_u.cpu().detach())
         if to_ctx_mgr.state == to_ctx_mgr.TIMED_OUT:
             us.us.data = us.us.data.clamp(min=self.u_min, max=self.u_max)
-        return us
+        end = time.time()
+        log = {}
+        log['trajectory_us_value'] = trajectory_us_value
+        log['trajectory_us_gradient'] = trajectory_us_gradient
+        log['trajectory_loss_objective'] = trajectory_loss_objective
+        log['trajectory_loss_delta_u'] = trajectory_loss_delta_u
+        log['total_time'] = end-start
+        return us, log
 
     def solve_mpc_LBFGS(self, history_tc, history_ws, target, weight=None):
         """
@@ -230,7 +246,11 @@ class LinearTorchMPC(nn.Module):
         :param target: [H x num_action]
         :return:
         """
-        crit = torch.nn.MSELoss(reduction='none')
+        start = time.time()
+        trajectory_us_value = []
+        trajectory_us_gradient = []
+        trajectory_loss_objective = []
+        trajectory_loss_delta_u = []
         gamma_mask = get_discount_factor(target.shape[0], 1.0).view(1, -1).to(self.device)
         gamma_mask = torch.transpose(gamma_mask, 0, 1)
         with stopit.ThreadingTimeout(self.timeout) as to_ctx_mgr:
@@ -241,30 +261,39 @@ class LinearTorchMPC(nn.Module):
                                     line_search_fn='strong_wolfe',
                                     **self.opt_config)
             for i in range(self.max_iter):
-                def closure():
-                    opt.zero_grad()
-                    prediction = self.predict_future(history_tc, history_ws, us())
-                    loss = F.relu(prediction - target) * weight[:, :, 1] - F.relu(target - prediction) * weight[:, :, 0]
-                    loss = ((loss ** 2) * gamma_mask).sum()
-                    init_concat_us = torch.cat([history_ws[-1:, :], us()], dim=0)
-                    delta_u_loss = (init_concat_us[1:, :] - init_concat_us[:-1, :]).pow(2).sum()
-                    loss = loss + self.alpha * delta_u_loss
-                    loss.backward()
-                    return loss
-
-                opt.step(closure)
+                opt.zero_grad()
+                prediction = self.predict_future(history_tc, history_ws, us())
+                loss_objective = F.relu(prediction - target) * weight[:, :, 1] - F.relu(
+                    target - prediction) * weight[:, :, 0]
+                loss_objective = ((loss_objective ** 2) * gamma_mask).sum()
+                init_concat_us = torch.cat([history_ws[-1:, :], us()], dim=0)
+                loss_delta_u = (init_concat_us[1:, :] - init_concat_us[:-1, :]).pow(2).sum()
+                loss_delta_u = self.alpha * loss_delta_u
+                loss = loss_objective + loss_delta_u
+                loss.backward()
+                opt.step()
                 us.us.data = us.us.data.clamp(min=self.u_min, max=self.u_max)
-
+                trajectory_us_value.append(us.us.data.cpu().detach())
+                trajectory_us_gradient.append(us.us.grad.data.cpu().detach())
+                trajectory_loss_objective.append(loss_objective.cpu().detach())
+                trajectory_loss_delta_u.append(loss_delta_u.cpu().detach())
         if to_ctx_mgr.state == to_ctx_mgr.TIMED_OUT:
             us.us.data = us.us.data.clamp(min=self.u_min, max=self.u_max)
-        return us
+        end = time.time()
+        log = {}
+        log['trajectory_us_value'] = trajectory_us_value
+        log['trajectory_us_gradient'] = trajectory_us_gradient
+        log['trajectory_loss_objective'] = trajectory_loss_objective
+        log['trajectory_loss_delta_u'] = trajectory_loss_delta_u
+        log['total_time'] = end - start
+        return us, log
 
     def solve_mpc(self, history_tc, history_ws, target, weight):
         if self.optimizer_mode == 'Adam':
-            opt_actions = self.solve_mpc_adam(history_tc, history_ws, target, weight)
+            opt_actions, log = self.solve_mpc_adam(history_tc, history_ws, target, weight)
         elif self.optimizer_mode == 'LBFGS':
-            opt_actions = self.solve_mpc_LBFGS(history_tc, history_ws, target, weight)
-        return opt_actions
+            opt_actions, log = self.solve_mpc_LBFGS(history_tc, history_ws, target, weight)
+        return opt_actions, log
 
     def predict_future(self, history_tc, history_ws, us):
         ## TODO: Design a module functions for coping w/ different model outputs.

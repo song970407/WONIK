@@ -37,8 +37,8 @@ class Runner:
         history_ws = torch.from_numpy(history_ws).float().to(device)
         history_tc = (history_tc - self.state_scaler[0]) / (self.state_scaler[1] - self.state_scaler[0])
         history_ws = (history_ws - self.action_scaler[0]) / (self.action_scaler[1] - self.action_scaler[0])
-        action = self.solver.solve_mpc(history_tc, history_ws, target, weight)
-        return action()[0:1, :]
+        action, log = self.solver.solve_mpc(history_tc, history_ws, target, weight)
+        return action()[0:1, :], log
 
 
 def main():
@@ -103,14 +103,15 @@ def main():
     us = torch.zeros((H, action_dim)).to(device)
     sample_predicted = m.multi_setp_prediction(x0, u0, us)
     print(sample_predicted.shape)"""
-
+    log_history = []
     for t in range(T - H):
         print("Now time [{}] / [{}]".format(t, T - H))
         start = time.time()
-        workset = runner.solve(history_tc, history_ws, target[t:t + H, :],
+        workset, log = runner.solve(history_tc, history_ws, target[t:t + H, :],
                                weight[t:t + H])  # [1 x 40] torch.Tensor, use this workset to the furnace
         end = time.time()
         print('Time computation : {}'.format(end - start))
+        log_history.append(log)
         with torch.no_grad():
             x0 = torch.from_numpy(history_tc).float().to(device)
             u0 = torch.from_numpy(history_ws).float().to(device)
