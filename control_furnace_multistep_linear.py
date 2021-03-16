@@ -1,6 +1,8 @@
 import torch
 import numpy as np
 import time
+import pickle
+
 from box import Box
 
 from src.model.get_model import get_reparam_multi_linear_model
@@ -105,6 +107,8 @@ def main():
     print(sample_predicted.shape)"""
     log_history = []
     for t in range(T - H):
+        if t>5:
+            break
         print("Now time [{}] / [{}]".format(t, T - H))
         start = time.time()
         workset, log = runner.solve(history_tc, history_ws, target[t:t + H, :],
@@ -128,7 +132,9 @@ def main():
         print('Average ws is {}'.format(workset.mean()))
         history_tc = np.concatenate([history_tc[1:, :], observed_tc], axis=0)
         history_ws = np.concatenate([history_ws[1:, :], workset], axis=0)
-
+    print(log_history)
+    with open('control_log.txt', 'wb') as f:
+        pickle.dump(log_history, f)
 
 if __name__ == '__main__':
     main()

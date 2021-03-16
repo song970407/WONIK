@@ -231,6 +231,10 @@ class LinearTorchMPC(nn.Module):
         if to_ctx_mgr.state == to_ctx_mgr.TIMED_OUT:
             us.us.data = us.us.data.clamp(min=self.u_min, max=self.u_max)
         end = time.time()
+        trajectory_us_value = torch.stack(trajectory_us_value)
+        trajectory_us_gradient = torch.stack(trajectory_us_gradient)
+        trajectory_loss_objective = torch.stack(trajectory_loss_objective)
+        trajectory_loss_delta_u = torch.stack(trajectory_loss_delta_u)
         log = {}
         log['trajectory_us_value'] = trajectory_us_value
         log['trajectory_us_gradient'] = trajectory_us_gradient
@@ -272,6 +276,7 @@ class LinearTorchMPC(nn.Module):
                     loss_delta_u = self.alpha * loss_delta_u
                     loss = loss_objective + loss_delta_u
                     loss.backward()
+                    return loss
                 opt.step(closure)
                 with torch.no_grad():
                     prediction = self.predict_future(history_tc, history_ws, us())
@@ -290,6 +295,10 @@ class LinearTorchMPC(nn.Module):
             us.us.data = us.us.data.clamp(min=self.u_min, max=self.u_max)
         end = time.time()
         log = {}
+        trajectory_us_value = torch.stack(trajectory_us_value)
+        trajectory_us_gradient = torch.stack(trajectory_us_gradient)
+        trajectory_loss_objective = torch.stack(trajectory_loss_objective)
+        trajectory_loss_delta_u = torch.stack(trajectory_loss_delta_u)
         log['trajectory_us_value'] = trajectory_us_value
         log['trajectory_us_gradient'] = trajectory_us_gradient
         log['trajectory_loss_objective'] = trajectory_loss_objective
