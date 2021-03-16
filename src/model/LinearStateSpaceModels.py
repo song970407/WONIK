@@ -197,6 +197,19 @@ class MultiLinearSSM(nn.Module):
             x0 = torch.cat([x0[:, 1:, :], x], dim=1)
         return torch.cat(xs, dim=1)
 
+    def multi_step_prediction(self, x0, u0, us):
+        """
+        :param x0: state_order x state_dim
+        :param u0: (action_order-1) x action_dim
+        :param us: H x action_dim
+        :return:
+        """
+        x0 = x0.unsqueeze(dim=0)
+        u0 = u0.unsqueeze(dim=0)
+        us = us.unsqueeze(dim=0)
+        xs = self.rollout(x0, u0, us)
+        return xs.squeeze(dim=0)
+
 
 class ReparamMultiLinearSSM(nn.Module):
     def __init__(self,

@@ -261,17 +261,26 @@ class LinearTorchMPC(nn.Module):
                                     line_search_fn='strong_wolfe',
                                     **self.opt_config)
             for i in range(self.max_iter):
-                opt.zero_grad()
-                prediction = self.predict_future(history_tc, history_ws, us())
-                loss_objective = F.relu(prediction - target) * weight[:, :, 1] - F.relu(
-                    target - prediction) * weight[:, :, 0]
-                loss_objective = ((loss_objective ** 2) * gamma_mask).sum()
-                init_concat_us = torch.cat([history_ws[-1:, :], us()], dim=0)
-                loss_delta_u = (init_concat_us[1:, :] - init_concat_us[:-1, :]).pow(2).sum()
-                loss_delta_u = self.alpha * loss_delta_u
-                loss = loss_objective + loss_delta_u
-                loss.backward()
-                opt.step()
+                def closure():
+                    opt.zero_grad()
+                    prediction = self.predict_future(history_tc, history_ws, us())
+                    loss_objective = F.relu(prediction - target) * weight[:, :, 1] - F.relu(
+                        target - prediction) * weight[:, :, 0]
+                    loss_objective = ((loss_objective ** 2) * gamma_mask).sum()
+                    init_concat_us = torch.cat([history_ws[-1:, :], us()], dim=0)
+                    loss_delta_u = (init_concat_us[1:, :] - init_concat_us[:-1, :]).pow(2).sum()
+                    loss_delta_u = self.alpha * loss_delta_u
+                    loss = loss_objective + loss_delta_u
+                    loss.backward()
+                opt.step(closure)
+                with torch.no_grad():
+                    prediction = self.predict_future(history_tc, history_ws, us())
+                    loss_objective = F.relu(prediction - target) * weight[:, :, 1] - F.relu(
+                        target - prediction) * weight[:, :, 0]
+                    loss_objective = ((loss_objective ** 2) * gamma_mask).sum()
+                    init_concat_us = torch.cat([history_ws[-1:, :], us()], dim=0)
+                    loss_delta_u = (init_concat_us[1:, :] - init_concat_us[:-1, :]).pow(2).sum()
+                    loss_delta_u = self.alpha * loss_delta_u
                 us.us.data = us.us.data.clamp(min=self.u_min, max=self.u_max)
                 trajectory_us_value.append(us.us.data.cpu().detach())
                 trajectory_us_gradient.append(us.us.grad.data.cpu().detach())

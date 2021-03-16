@@ -1,15 +1,15 @@
 from os.path import join
 
-import numpy as np
 import torch
 import wandb
 
 from torch.utils.data import DataLoader, TensorDataset
 from src.utils.load_data import load_data
-from src.model.get_model import get_arimax_model
+from src.model.get_model import get_reparam_multi_linear_model
 from src.utils.data_preprocess import get_data
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 # Hyperparameters
 state_dim = 140
 action_dim = 40
@@ -20,7 +20,7 @@ H = 50
 
 # Prepare Model and Dataset
 
-m = get_arimax_model(state_dim, action_dim, state_order, action_order).to(DEVICE)
+m = get_reparam_multi_linear_model(state_dim, action_dim, state_order, action_order).to(DEVICE)
 
 train_data_path = ['docs/new_data/grnn/data_3.csv', 'docs/new_data/icgrnn/data_3.csv', 'docs/new_data/expert/data_3.csv']
                    #,'docs/new_data/icgrnn/data_1.csv', 'docs/new_data/linear/data_1.csv']

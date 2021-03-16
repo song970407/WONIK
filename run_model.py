@@ -1,7 +1,7 @@
 import torch
 import matplotlib.pyplot as plt
 
-from src.model.get_model import get_reparam_multi_linear_model
+from src.model.get_model import get_reparam_multi_linear_model, get_arimax_model
 from src.utils.load_data import load_data
 from src.utils.data_preprocess import get_data
 from src.control.torch_mpc import LinearTorchMPC
@@ -11,15 +11,18 @@ print(device)
 
 state_dim = 140
 action_dim = 40
-state_order = 5
-action_order = 5
+state_order = 50
+action_order = 50
 alpha = 0.001  # Workset smoothness
 time_limit = 5  # seconds
 weight_alpha = 5
-train_data_path = ['docs/new_data/expert/data_1.csv', 'docs/new_data/expert/data_2.csv']
+# train_data_path = ['docs/new_data/expert/data_1.csv', 'docs/new_data/expert/data_2.csv']
+train_data_path = ['docs/new_data/grnn/data_3.csv', 'docs/new_data/icgrnn/data_3.csv', 'docs/new_data/expert/data_3.csv']
 
-m = get_reparam_multi_linear_model(state_dim, action_dim, state_order, action_order)
-model_filename = 'model/Multistep_linear/model_reparam_55.pt'
+
+# m = get_reparam_multi_linear_model(state_dim, action_dim, state_order, action_order)
+m = get_arimax_model(state_dim, action_dim, state_order, action_order)
+model_filename = 'model/Multistep_linear/model_reparam_5050.pt'
 m.load_state_dict(torch.load(model_filename, map_location=device))
 m.eval()
 
@@ -48,15 +51,15 @@ test_states, test_actions, _ = load_data(paths=test_data_path,
 # print(test_states[0].shape)
 # print(test_actions[0].shape)
 
-rollout_window = 900
+rollout_window = 500
 glass_tc_path = 'docs/new_location/glass_TC.csv'
 control_tc_path = 'docs/new_location/control_TC.csv'
 
 history_xs, history_us, us, ys, _ = get_data(states=test_states,
                                              actions=test_actions,
                                              rollout_window=rollout_window,
-                                             history_x_window=5,
-                                             history_u_window=5,
+                                             history_x_window=state_order,
+                                             history_u_window=action_order,
                                              glass_tc_pos_path=glass_tc_path,
                                              control_tc_pos_path=control_tc_path,
                                              num_glass_tc=140,
@@ -67,17 +70,14 @@ history_xs = history_xs[0].transpose(1, 2)
 history_us = history_us.transpose(1, 2)
 us = us.transpose(1, 2)
 ys = ys[0].transpose(1, 2)
-# ys[1] = ys[1].transpose(1, 2)
-# print(history_xs.shape)
-# print(history_us.shape)
-# print(us.shape)
-# print(ys.shape)
+
 
 predicted_ys = []
 
 with torch.no_grad():
-    for idx in range(history_xs.shape[0]):
+    for idx in range(2):
         print(idx)
+        # predicted_y = m.multi_step_prediction(history_xs[idx], history_us[idx], us[idx])
         predicted_y = m.multi_step_prediction(history_xs[idx], history_us[idx], us[idx])
         predicted_ys.append(predicted_y)
 predicted_ys = torch.stack(predicted_ys, dim=0)
