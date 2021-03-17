@@ -5,7 +5,7 @@ import pickle
 
 from box import Box
 
-from src.model.get_model import get_reparam_multi_linear_model
+from src.model.get_model import get_reparam_multi_linear_model, get_multi_linear_residual_model
 from src.utils.load_data import load_data
 from src.utils.data_preprocess import get_data
 from src.control.torch_mpc import LinearTorchMPC
@@ -47,24 +47,17 @@ def main():
     # Setting
     state_dim = 140
     action_dim = 40
-    state_order = 5
-    action_order = 5
+    state_order = 20
+    action_order = 20
     alpha = 0  # Workset smoothness
     time_limit = 5  # seconds
-    weight_alpha = 5
-    train_data_path = ['docs/new_data/expert/data_1.csv', 'docs/new_data/expert/data_2.csv']
+    weight_alpha = 1
 
-    m = get_reparam_multi_linear_model(state_dim, action_dim, state_order, action_order)
-    model_filename = 'model/Multistep_linear/model_reparam_55.pt'
+    m = get_multi_linear_residual_model(state_dim, action_dim, state_order, action_order)
+    model_filename = 'model/Multistep_linear/model_res_2020.pt'
     m.load_state_dict(torch.load(model_filename, map_location=device))
     m.eval()
-
-    train_states, train_actions, info = load_data(paths=train_data_path,
-                                                  scaling=True,
-                                                  preprocess=True,
-                                                  history_x=state_order,
-                                                  history_u=action_order)
-    scaler = (info['scale_min'].item(), info['scale_max'].item())
+    scaler = (20.0, 420.0)
 
     print('Min. state scaler: {}, Max. state scaler: {}'.format(scaler[0], scaler[1]))
     print('Min. action scaler: {}, Max. action scaler: {}'.format(scaler[0], scaler[1]))
@@ -107,6 +100,8 @@ def main():
     print(sample_predicted.shape)"""
     log_history = []
     for t in range(T - H):
+        if t > 5:
+            break
         print("Now time [{}] / [{}]".format(t, T - H))
         start = time.time()
         workset, log = runner.solve(history_tc, history_ws, target[t:t + H, :],

@@ -5,7 +5,7 @@ import wandb
 
 from torch.utils.data import DataLoader, TensorDataset
 from src.utils.load_data import load_data
-from src.model.get_model import get_reparam_multi_linear_model
+from src.model.get_model import get_reparam_multi_linear_model, get_multi_linear_model, get_multi_linear_residual_model
 from src.utils.data_preprocess import get_data
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -13,17 +13,18 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 # Hyperparameters
 state_dim = 140
 action_dim = 40
-state_order = 50
-action_order = 50
+state_order = 5
+action_order = 5
 BS = 64
 H = 50
 
 # Prepare Model and Dataset
 
-m = get_reparam_multi_linear_model(state_dim, action_dim, state_order, action_order).to(DEVICE)
+# m = get_multi_linear_model(state_dim, action_dim, state_order, action_order).to(DEVICE)
+m = get_multi_linear_residual_model(state_dim, action_dim, state_order, action_order).to(DEVICE)
 
-train_data_path = ['docs/new_data/grnn/data_3.csv', 'docs/new_data/icgrnn/data_3.csv', 'docs/new_data/expert/data_3.csv', 'docs/new_data/overshoot/data_2.csv']
-test_data_path = ['docs/new_data/icgrnn/data_4.csv', 'docs/new_data/expert/data_4.csv', 'docs/new_data/overshoot/data_1.csv']
+train_data_path = ['docs/new_data/expert/data_3.csv', 'docs/new_data/icgrnn/data_3.csv', 'docs/new_data/overshoot/data_2.csv']
+test_data_path = ['docs/new_data/icgrnn/data_4.csv', 'docs/new_data/overshoot/data_1.csv']
                   #'docs/new_data/icgrnn/data_2.csv', 'docs/new_data/linear/data_2.csv']
 glass_tc_pos_path = 'docs/new_location/glass_TC.csv'
 control_tc_pos_path = 'docs/new_location/control_TC.csv'
@@ -81,16 +82,20 @@ test_ys = test_ys[0].transpose(1, 2)
 criteria = torch.nn.MSELoss()
 train_ds = TensorDataset(train_history_xs, train_history_us, train_us, train_ys)
 train_loader = DataLoader(train_ds, batch_size=BS, shuffle=True)
+test_criteria = torch.nn.L1Loss()
 
-opt = torch.optim.Adam(m.parameters(), lr=0.001)
+opt = torch.optim.Adam(m.parameters(), lr=0.00001)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(opt, T_0=10)
 iters = len(train_loader)
-EPOCHS = 1000
+EPOCHS = 100
 TEST_EVERY = 100
 run = wandb.init(entity='sentinel',
                  name='State Order ' + str(state_order) + ' Action Order ' + str(action_order) + ' H ' + str(H),
                  reinit=True,
-                 project='ARIMAX')
+                 project='Multistep_Linear_Res')
+run.config['state_order'] = state_order
+run.config['action_order'] = action_order
+run.config['scaler'] = (info['scale_min'], info['scale_max'])
 num_updates = 0
 
 # Start Training
@@ -110,7 +115,7 @@ for ep in range(EPOCHS):
         if num_updates % TEST_EVERY == 0:
             with torch.no_grad():
                 test_predicted_y = m.rollout(test_history_xs, test_history_us, test_us)
-                test_loss = criteria(test_predicted_y, test_ys)
+                test_loss = test_criteria(test_predicted_y, test_ys)
                 log_dict['test_loss'] = test_loss.item()
         torch.save(m.state_dict(), join(wandb.run.dir, 'model.pt'))
         wandb.log(log_dict)
