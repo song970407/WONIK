@@ -107,8 +107,6 @@ def main():
     print(sample_predicted.shape)"""
     log_history = []
     for t in range(T - H):
-        if t>5:
-            break
         print("Now time [{}] / [{}]".format(t, T - H))
         start = time.time()
         workset, log = runner.solve(history_tc, history_ws, target[t:t + H, :],

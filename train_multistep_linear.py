@@ -22,9 +22,8 @@ H = 50
 
 m = get_reparam_multi_linear_model(state_dim, action_dim, state_order, action_order).to(DEVICE)
 
-train_data_path = ['docs/new_data/grnn/data_3.csv', 'docs/new_data/icgrnn/data_3.csv', 'docs/new_data/expert/data_3.csv']
-                   #,'docs/new_data/icgrnn/data_1.csv', 'docs/new_data/linear/data_1.csv']
-test_data_path = ['docs/new_data/icgrnn/data_4.csv', 'docs/new_data/expert/data_4.csv']
+train_data_path = ['docs/new_data/grnn/data_3.csv', 'docs/new_data/icgrnn/data_3.csv', 'docs/new_data/expert/data_3.csv', 'docs/new_data/overshoot/data_2.csv']
+test_data_path = ['docs/new_data/icgrnn/data_4.csv', 'docs/new_data/expert/data_4.csv', 'docs/new_data/overshoot/data_1.csv']
                   #'docs/new_data/icgrnn/data_2.csv', 'docs/new_data/linear/data_2.csv']
 glass_tc_pos_path = 'docs/new_location/glass_TC.csv'
 control_tc_pos_path = 'docs/new_location/control_TC.csv'
@@ -34,6 +33,11 @@ train_states, train_actions, info = load_data(paths=train_data_path,
                                               preprocess=True,
                                               history_x=state_order,
                                               history_u=action_order)
+
+# Set te minimum and maximum temperature as 20 and 420
+info['scale_min'] = 20.0
+info['scale_max'] = 420.0
+
 test_states, test_actions, _ = load_data(paths=test_data_path,
                                          scaling=True,
                                          scaler=(info['scale_min'], info['scale_max']),
@@ -74,7 +78,7 @@ test_us = test_us.transpose(1, 2)
 test_ys = test_ys[0].transpose(1, 2)
 
 # Training Route Setting
-criteria = torch.nn.L1Loss()
+criteria = torch.nn.MSELoss()
 train_ds = TensorDataset(train_history_xs, train_history_us, train_us, train_ys)
 train_loader = DataLoader(train_ds, batch_size=BS, shuffle=True)
 

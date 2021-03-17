@@ -50,7 +50,7 @@ def load_data(paths: Union[str, List[str]],
 
         if preprocess:
             for i in range(step_df_length):
-                if step_df[i][0] == '375H':
+                if step_df[i][0] == '375H' or step_df[i][0] == '200H':
                     first = i
                     break
             for i in range(step_df_length):
