@@ -354,24 +354,20 @@ class LinearTorchMPCTest(nn.Module):
         self.opt_config = opt_config
 
     def solve_mpc_adam(self, history_tc, history_ws, target, weight=None):
+        crit = torch.nn.MSELoss()
         start = time.time()
         trajectory_us_value = []
         trajectory_us_gradient = []
         trajectory_loss_objective = []
         trajectory_loss_delta_u = []
-        gamma_mask = get_discount_factor(target.shape[0], 1.0).view(1, -1).to(self.device)
-        gamma_mask = torch.transpose(gamma_mask, 0, 1)
         with stopit.ThreadingTimeout(self.timeout) as to_ctx_mgr:
             us = Linear_Actions(target[:, 0], history_ws.shape[1], self.u_min, self.u_max).to(self.device)
             opt = torch.optim.Adam(us.parameters(), lr=1e-3)
             for i in range(self.max_iter):
                 opt.zero_grad()
                 prediction = self.predict_future(history_tc, history_ws, us())
-                loss_objective = F.relu(prediction - target) * weight[:, :, 1] - F.relu(target - prediction) * weight[:, :, 0]
-                loss_objective = ((loss_objective ** 2) * gamma_mask).sum()
-                init_concat_us = torch.cat([history_ws[-1:, :], us()], dim=0)
-                loss_delta_u = (init_concat_us[1:, :] - init_concat_us[:-1, :]).pow(2).sum()
-                loss_delta_u = self.alpha * loss_delta_u
+                loss_objective = crit(prediction, target)
+                loss_delta_u = torch.zeros(1)
                 loss = loss_objective + loss_delta_u
                 loss.backward()
                 opt.step()
@@ -422,23 +418,15 @@ class LinearTorchMPCTest(nn.Module):
                     opt.zero_grad()
                     prediction = self.predict_future(history_tc, history_ws, us())
                     loss_objective = crit(prediction, target)
-                    # loss_objective = ((loss_objective ** 2) * gamma_mask).sum()
                     loss_delta_u = 0
-                    #init_concat_us = torch.cat([history_ws[-1:, :], us()], dim=0)
-                    #loss_delta_u = (init_concat_us[1:, :] - init_concat_us[:-1, :]).pow(2).sum()
-                    #loss_delta_u = self.alpha * loss_delta_u
                     loss = loss_objective + loss_delta_u
                     loss.backward()
                     return loss
                 opt.step(closure)
                 with torch.no_grad():
                     prediction = self.predict_future(history_tc, history_ws, us())
-                    loss_objective = F.relu(prediction - target) * weight[:, :, 1] - F.relu(
-                        target - prediction) * weight[:, :, 0]
-                    loss_objective = ((loss_objective ** 2) * gamma_mask).sum()
-                    init_concat_us = torch.cat([history_ws[-1:, :], us()], dim=0)
-                    loss_delta_u = (init_concat_us[1:, :] - init_concat_us[:-1, :]).pow(2).sum()
-                    loss_delta_u = self.alpha * loss_delta_u
+                    loss_objective = crit(prediction, target)
+                    loss_delta_u = torch.zeros(0)
                 us.us.data = us.us.data.clamp(min=self.u_min, max=self.u_max)
                 trajectory_us_value.append(us.us.data.cpu().detach())
                 trajectory_us_gradient.append(us.us.grad.data.cpu().detach())

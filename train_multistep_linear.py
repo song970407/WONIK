@@ -17,7 +17,9 @@ state_order = 5
 action_order = 5
 BS = 64
 H = 50
-
+scale_min = 20.0
+scale_max = 420.0
+scaler = (scale_min, scale_max)
 # Prepare Model and Dataset
 
 # m = get_multi_linear_model(state_dim, action_dim, state_order, action_order).to(DEVICE)
@@ -29,25 +31,23 @@ test_data_path = ['docs/new_data/icgrnn/data_4.csv', 'docs/new_data/overshoot/da
 glass_tc_pos_path = 'docs/new_location/glass_TC.csv'
 control_tc_pos_path = 'docs/new_location/control_TC.csv'
 
+
 train_states, train_actions, info = load_data(paths=train_data_path,
                                               scaling=True,
+                                              scaler=scaler,
                                               preprocess=True,
                                               history_x=state_order,
                                               history_u=action_order)
 
 # Set te minimum and maximum temperature as 20 and 420
-info['scale_min'] = 20.0
-info['scale_max'] = 420.0
 
 test_states, test_actions, _ = load_data(paths=test_data_path,
                                          scaling=True,
-                                         scaler=(info['scale_min'], info['scale_max']),
+                                         scaler=scaler,
                                          preprocess=True,
                                          history_x=state_order,
                                          history_u=action_order)
 
-print(info['scale_min'])
-print(info['scale_max'])
 train_history_xs, train_history_us, train_us, train_ys, pos_tc = get_data(states=train_states,
                                                                           actions=train_actions,
                                                                           rollout_window=H,

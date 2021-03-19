@@ -46,7 +46,7 @@ def main(state_order, action_order, train_data_path, model_filename):
     # print(test_states[0].shape)
     # print(test_actions[0].shape)
 
-    rollout_window = 200
+    rollout_window = 2300
     glass_tc_path = 'docs/new_location/glass_TC.csv'
     control_tc_path = 'docs/new_location/control_TC.csv'
 
@@ -69,9 +69,7 @@ def main(state_order, action_order, train_data_path, model_filename):
     predicted_ys = []
 
     with torch.no_grad():
-        for idx in range(701):
-            if idx < 700:
-                continue
+        for idx in range(1):
             print(idx)
             predicted_y = m.multi_step_prediction(history_xs[idx], history_us[idx], us[idx])
             predicted_ys.append(predicted_y)
@@ -96,10 +94,10 @@ if __name__ == '__main__':
                         ['docs/new_data/grnn/data_3.csv', 'docs/new_data/icgrnn/data_3.csv',
                          'docs/new_data/expert/data_3.csv', 'docs/new_data/overshoot/data_2.csv']]
     model_filenames = ['model/Multistep_linear/model_reparam_55.pt', 'model/Multistep_linear/model_reparam_2020.pt']"""
-    state_orders = [5, 20, 20]
-    action_orders = [5, 20, 20]
+    state_orders = [5, 20, 50]
+    action_orders = [5, 20, 50]
     train_data_paths = [['docs/new_data/overshoot/data_2.csv'], ['docs/new_data/overshoot/data_2.csv'], ['docs/new_data/overshoot/data_2.csv']]
-    model_filenames = ['model/Multistep_linear/model_res_55.pt', 'model/Multistep_linear/model_res_2020.pt', 'model/Multistep_linear/model_res_2020_additional.pt']
+    model_filenames = ['model/Multistep_linear/model_res_55.pt', 'model/Multistep_linear/model_res_2020.pt', 'model/Multistep_linear/model_res_5050.pt']
     yss = []
     predicted_yss = []
     uss = []
@@ -109,26 +107,26 @@ if __name__ == '__main__':
         predicted_yss.append(predicted_ys)
         uss.append(us)
     plt.figure(1)
-    plt.plot(yss[0][700])
-    plt.ylim([200, 300])
+    plt.plot(yss[0][0])
+    plt.ylim([100, 450])
     plt.show()
 
     plt.figure(2)
     plt.plot(predicted_yss[0][0])
-    plt.ylim([200, 300])
+    plt.ylim([100, 450])
     plt.show()
 
     plt.figure(3)
     plt.plot(predicted_yss[1][0])
-    plt.ylim([200, 300])
+    plt.ylim([100, 450])
     plt.show()
 
     plt.figure(3)
     plt.plot(predicted_yss[2][0])
-    plt.ylim([200, 300])
+    plt.ylim([100, 450])
     plt.show()
 
     plt.figure(4)
-    plt.plot(uss[0][700])
-    plt.ylim([200, 300])
+    plt.plot(uss[0][0])
+    plt.ylim([100, 450])
     plt.show()
