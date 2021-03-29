@@ -3,7 +3,8 @@ import torch.nn as nn
 from typing import Union, List
 from src.model.GraphStateSpaceModels import GraphSSM_GAT
 from src.model.HeteroGraphSSM import HeteroGraphSSM
-from src.model.LinearStateSpaceModels import MultiLinearSSM, ReparamMultiLinearSSM, MultiLinearResSSM
+from src.model.LinearStateSpaceModels import MultiLinearSSM, ReparamMultiLinearSSM, MultiLinearResSSM, \
+    MultiLinearResFastSSM
 from src.model.distance_kernel import RBFKernel
 from src.nn.GraphModules.ConvexModule import ConvexLinear, ConvexGATConv
 from src.nn.MLP import MultiLayerPerceptron as MLP
@@ -158,6 +159,10 @@ def get_multi_linear_model(state_dim, action_dim, state_order, action_order):
 
 def get_multi_linear_residual_model(state_dim, action_dim, state_order, action_order):
     m = MultiLinearResSSM(state_dim, action_dim, state_order, action_order)
+    return m
+
+def get_multi_linear_residual_fast_model(state_dim, action_dim, state_order, action_order):
+    m = MultiLinearResFastSSM(state_dim, action_dim, state_order, action_order)
     return m
 
 def get_reparam_multi_linear_model(state_dim, action_dim, state_order, action_order):
