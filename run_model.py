@@ -91,6 +91,7 @@ if __name__ == '__main__':
                        'model/Multistep_linear/residual_model/model_40.pt',
                        'model/Multistep_linear/residual_model/model_45.pt',
                        'model/Multistep_linear/residual_model/model_50.pt']
+
     yss = []
     predicted_yss = []
     uss = []
