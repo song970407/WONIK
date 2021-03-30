@@ -45,11 +45,11 @@ class Runner:
         return action, log
 
 
-def main(state_order, action_order, model_filename, H):
+def main(state_order, action_order, model_filename, H, alpha):
     # Setting
     state_dim = 140
     action_dim = 40
-    alpha = 10  # Workset smoothness
+    # alpha = 10  # Workset smoothness
     time_limit = 5  # seconds
 
     # m = get_multi_linear_residual_model(state_dim, action_dim, state_order, action_order)
@@ -104,7 +104,7 @@ def main(state_order, action_order, model_filename, H):
         start = time.time()
         # action, log = runner.solve(history_tc, history_ws, target[t:t + H, :],
         #                            initial_ws)  # [1 x 40] torch.Tensor, use this workset to the furnace
-        action, log = runner.solve(history_tc, history_ws, target[t:t + H, :])
+        action, log = runner.solve(history_tc, history_ws, target[t:t + H, :], initial_ws)
         print(log['total_time'])
         end = time.time()
         print('Time computation : {}'.format(end - start))
@@ -129,15 +129,15 @@ def main(state_order, action_order, model_filename, H):
         trajectory_tc.append(observed_tc)
         trajectory_ws.append(workset)
     # print(log_history)
-    with open('simulation_data/multistep_linear_residual_fast/' + str(state_order) + '_10/control_log.txt',
-              'wb') as f:
+    with open('simulation_data/multistep_linear_residual_fast_previous/' + str(state_order) + '_' + str(
+            alpha) + '/control_log.txt', 'wb') as f:
         pickle.dump(log_history, f)
     trajectory_tc = np.concatenate(trajectory_tc, axis=0)
     trajectory_ws = np.concatenate(trajectory_ws, axis=0)
-    np.save('simulation_data/multistep_linear_residual_fast/' + str(state_order) + '_10/trajectory_tc.npy',
-            trajectory_tc)
-    np.save('simulation_data/multistep_linear_residual_fast/' + str(state_order) + '_10/trajectory_ws.npy',
-            trajectory_ws)
+    np.save('simulation_data/multistep_linear_residual_fast_previous/' + str(state_order) + '_' + str(
+        alpha) + '/trajectory_tc.npy', trajectory_tc)
+    np.save('simulation_data/multistep_linear_residual_fast_previous/' + str(state_order) + '_' + str(
+        alpha) + '/trajectory_ws.npy', trajectory_ws)
 
 
 if __name__ == '__main__':
@@ -153,9 +153,14 @@ if __name__ == '__main__':
                        'model/Multistep_linear/residual_fast_model/model_40.pt',
                        'model/Multistep_linear/residual_fast_model/model_45.pt',
                        'model/Multistep_linear/residual_fast_model/model_50.pt']
-    state_orders = [50]
-    action_orders = [50]
-    model_filenames = ['model/Multistep_linear/residual_fast_model/model_50.pt']
+    alphas = [0, 0.01, 0.1, 1, 10]
+    state_orders = [50, 50, 50, 50, 50]
+    action_orders = [50, 50, 50, 50, 50]
+    model_filenames = ['model/Multistep_linear/residual_fast_model/model_50.pt',
+                       'model/Multistep_linear/residual_fast_model/model_50.pt',
+                       'model/Multistep_linear/residual_fast_model/model_50.pt',
+                       'model/Multistep_linear/residual_fast_model/model_50.pt',
+                       'model/Multistep_linear/residual_fast_model/model_50.pt']
     H = 50
-    for i in range(len(state_orders)):
-        main(state_orders[i], action_orders[i], model_filenames[i], H)
+    for i in range(len(alphas)):
+        main(state_orders[i], action_orders[i], model_filenames[i], H, alphas[i])

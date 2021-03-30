@@ -213,7 +213,7 @@ class LinearTorchMPC(nn.Module):
                 us = torch.nn.Parameter(target[:, :history_ws.shape[1]]).to(self.device)
             else:
                 us = torch.nn.Parameter(initial_ws).to(self.device)
-            opt = torch.optim.Adam([us], lr=1e-3)
+            opt = torch.optim.Adam([us], lr=1e-4)
             for i in range(self.max_iter):
                 opt.zero_grad()
                 prediction = self.predict_future(history_tc, history_ws, us)

@@ -4,15 +4,15 @@ import matplotlib.pyplot as plt
 
 
 def main(state_order, action_order, alpha):
-    with open('simulation_data/multistep_linear_residual_fast/' + str(state_order) + alpha + '/control_log.txt', 'rb') as f:
+    with open('simulation_data/multistep_linear_residual_fast_previous/' + str(state_order) + alpha + '/control_log.txt', 'rb') as f:
         control_log = pickle.load(f)
     print(len(control_log))
     print(len(control_log[0]))
     print(control_log[0].keys())
     trajectory_tc = np.load(
-        'simulation_data/multistep_linear_residual_fast/' + str(state_order) + alpha + '/trajectory_tc.npy')
+        'simulation_data/multistep_linear_residual_fast_previous/' + str(state_order) + alpha + '/trajectory_tc.npy')
     trajectory_ws = np.load(
-        'simulation_data/multistep_linear_residual_fast/' + str(state_order) + alpha + '/trajectory_ws.npy')
+        'simulation_data/multistep_linear_residual_fast_previous/' + str(state_order) + alpha + '/trajectory_ws.npy')
     # print(trajectory_tc.shape)
     # print(trajectory_ws.shape)
     num_iters = []
