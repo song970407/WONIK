@@ -49,7 +49,7 @@ def main(state_order, action_order, model_filename, H):
     # Setting
     state_dim = 140
     action_dim = 40
-    alpha = 1  # Workset smoothness
+    alpha = 10  # Workset smoothness
     time_limit = 5  # seconds
 
     # m = get_multi_linear_residual_model(state_dim, action_dim, state_order, action_order)
@@ -129,14 +129,14 @@ def main(state_order, action_order, model_filename, H):
         trajectory_tc.append(observed_tc)
         trajectory_ws.append(workset)
     # print(log_history)
-    with open('simulation_data/multistep_linear_residual_fast/' + str(state_order) + '_1/control_log.txt',
+    with open('simulation_data/multistep_linear_residual_fast/' + str(state_order) + '_10/control_log.txt',
               'wb') as f:
         pickle.dump(log_history, f)
     trajectory_tc = np.concatenate(trajectory_tc, axis=0)
     trajectory_ws = np.concatenate(trajectory_ws, axis=0)
-    np.save('simulation_data/multistep_linear_residual_fast/' + str(state_order) + '_1/trajectory_tc.npy',
+    np.save('simulation_data/multistep_linear_residual_fast/' + str(state_order) + '_10/trajectory_tc.npy',
             trajectory_tc)
-    np.save('simulation_data/multistep_linear_residual_fast/' + str(state_order) + '_1/trajectory_ws.npy',
+    np.save('simulation_data/multistep_linear_residual_fast/' + str(state_order) + '_10/trajectory_ws.npy',
             trajectory_ws)
 
 
