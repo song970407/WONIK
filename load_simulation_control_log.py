@@ -69,9 +69,9 @@ if __name__ == '__main__':
                        'model/Multistep_linear/residual_model/model_45.pt',
                        'model/Multistep_linear/residual_model/model_50.pt']
     H = 50
-    state_orders = [50, 50, 50, 50]
-    action_orders = [50, 50, 50, 50]
-    alphas = ['', '_0.01', '_0.1', '_1']
+    state_orders = [50, 50, 50, 50, 50]
+    action_orders = [50, 50, 50, 50, 50]
+    alphas = ['_0', '_0.01', '_0.1', '_1', '_10']
     model_filenames = ['model/Multistep_linear/residual_model/model_50.pt']
 
     for i in range(len(alphas)):
