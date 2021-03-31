@@ -128,41 +128,25 @@ def main(state_order, action_order, model_filename, H, alpha):
         trajectory_tc.append(observed_tc)
         trajectory_ws.append(workset)
     # print(log_history)
-    with open('simulation_data/multistep_linear_residual_fast_previous/' + str(state_order) + '_' + str(
+    with open('simulation_data/multistep_linear_residual/' + str(state_order) + '_' + str(
             alpha) + '/control_log.txt',
               'wb') as f:
         pickle.dump(log_history, f)
     trajectory_tc = np.concatenate(trajectory_tc, axis=0)
     trajectory_ws = np.concatenate(trajectory_ws, axis=0)
     np.save(
-        'simulation_data/multistep_linear_residual_fast_previous/' + str(state_order) + '_' + str(alpha) + '/trajectory_tc.npy',
+        'simulation_data/multistep_linear_residual/' + str(state_order) + '_' + str(alpha) + '/trajectory_tc.npy',
         trajectory_tc)
     np.save(
-        'simulation_data/multistep_linear_residual_fast_previous/' + str(state_order) + '_' + str(alpha) + '/trajectory_ws.npy',
+        'simulation_data/multistep_linear_residual/' + str(state_order) + '_' + str(alpha) + '/trajectory_ws.npy',
         trajectory_ws)
 
 
 if __name__ == '__main__':
-    state_orders = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
-    action_orders = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
-    model_filenames = ['model/Multistep_linear/residual_model/model_05.pt',
-                       'model/Multistep_linear/residual_model/model_10.pt',
-                       'model/Multistep_linear/residual_model/model_15.pt',
-                       'model/Multistep_linear/residual_model/model_20.pt',
-                       'model/Multistep_linear/residual_model/model_25.pt',
-                       'model/Multistep_linear/residual_model/model_30.pt',
-                       'model/Multistep_linear/residual_model/model_35.pt',
-                       'model/Multistep_linear/residual_model/model_40.pt',
-                       'model/Multistep_linear/residual_model/model_45.pt',
-                       'model/Multistep_linear/residual_model/model_50.pt']
-    state_orders = [50, 50, 50, 50, 50]
-    action_orders = [50, 50, 50, 50, 50]
-    model_filenames = ['model/Multistep_linear/residual_model/model_50.pt',
-                       'model/Multistep_linear/residual_model/model_50.pt',
-                       'model/Multistep_linear/residual_model/model_50.pt',
-                       'model/Multistep_linear/residual_model/model_50.pt',
-                       'model/Multistep_linear/residual_model/model_50.pt']
-    alphas = [0, 0.01, 0.1, 1, 10]
+    state_orders = [50]
+    action_orders = [50]
+    model_filenames = ['model/Multistep_linear/residual_model/model_50.pt']
+    alphas = [0]
     H = 50
     for i in range(len(state_orders)):
         main(state_orders[i], action_orders[i], model_filenames[i], H, alphas[i])
