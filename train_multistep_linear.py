@@ -18,7 +18,7 @@ def main(state_order, action_order):
     action_dim = 40
     # state_order = 20
     # action_order = 20
-    BS = 64
+    BS = 128
     H = 100
     scale_min = 20.0
     scale_max = 420.0
@@ -128,6 +128,7 @@ def main(state_order, action_order):
 
 if __name__ == '__main__':
     state_orders = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    state_orders = [60, 70, 80, 90, 100]
     action_orders = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
     for i in range(len(state_orders)):
         for j in range(len(action_orders)):
