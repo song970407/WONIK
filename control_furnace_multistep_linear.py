@@ -5,7 +5,7 @@ import pickle
 
 from box import Box
 
-from src.model.get_model import get_reparam_multi_linear_model, get_multi_linear_residual_model
+from src.model.get_model import get_multi_linear_residual_model
 from src.utils.load_data import load_data
 from src.utils.data_preprocess import get_data
 from src.control.torch_mpc import LinearTorchMPC
@@ -29,7 +29,7 @@ class Runner:
         self.state_scaler = state_scaler
         self.action_scaler = action_scaler
 
-    def solve(self, history_tc, history_ws, target, initial_ws):
+    def solve(self, history_tc, history_ws, target, initial_ws=None):
         """
         :param history_tc: state_order x num_state
         :param history_ws: (action_order-1) x num_action
@@ -45,13 +45,14 @@ class Runner:
         return action, log
 
 
-def main(state_order, action_order, model_filename, H):
+def main(state_order, action_order, model_filename, H, alpha):
     # Setting
     state_dim = 140
     action_dim = 40
-    alpha = 0  # Workset smoothness
+    # alpha = 10  # Workset smoothness
     time_limit = 5  # seconds
 
+    # m = get_multi_linear_residual_model(state_dim, action_dim, state_order, action_order)
     m = get_multi_linear_residual_model(state_dim, action_dim, state_order, action_order)
     m.load_state_dict(torch.load(model_filename, map_location=device))
     m.eval()
@@ -89,7 +90,6 @@ def main(state_order, action_order, model_filename, H):
     history_tc = states[0][:state_order, :state_dim].cpu().detach().numpy()
     history_ws = actions[0][:action_order - 1].cpu().detach().numpy()
 
-
     # history_tc = np.ones((state_order, state_dim)) * 150  # Please fill the real data, 0~139: glass TC
     # history_ws = np.ones((action_order - 1, action_dim)) * 150  # Please fill the real data, 0~39: workset
     initial_ws = target[:H, :action_dim].to(device)  # [H x 40], 0-1 scale
@@ -102,8 +102,8 @@ def main(state_order, action_order, model_filename, H):
     for t in range(T - H):
         print("Now time [{}] / [{}]".format(t, T - H))
         start = time.time()
-        action, log = runner.solve(history_tc, history_ws, target[t:t + H, :],
-                                   initial_ws)  # [1 x 40] torch.Tensor, use this workset to the furnace
+        # action, log = runner.solve(history_tc, history_ws, target[t:t + H, :]) # Initial solution as target temp
+        action, log = runner.solve(history_tc, history_ws, target[t:t + H, :], initial_ws) # Initial solution as previous optimized Work Set
         print(log['total_time'])
         end = time.time()
         print('Time computation : {}'.format(end - start))
@@ -127,13 +127,19 @@ def main(state_order, action_order, model_filename, H):
         history_ws = np.concatenate([history_ws[1:, :], workset], axis=0)
         trajectory_tc.append(observed_tc)
         trajectory_ws.append(workset)
-    print(log_history)
-    with open('simulation_data/' + str(state_order) + '/control_log.txt', 'wb') as f:
+    # print(log_history)
+    with open('simulation_data/multistep_linear_residual_fast_previous/' + str(state_order) + '_' + str(
+            alpha) + '/control_log.txt',
+              'wb') as f:
         pickle.dump(log_history, f)
     trajectory_tc = np.concatenate(trajectory_tc, axis=0)
     trajectory_ws = np.concatenate(trajectory_ws, axis=0)
-    np.save('simulation_data/' + str(state_order) + '/trajectory_tc.npy', trajectory_tc)
-    np.save('simulation_data/' + str(state_order) + '/trajectory_ws.npy', trajectory_ws)
+    np.save(
+        'simulation_data/multistep_linear_residual_fast_previous/' + str(state_order) + '_' + str(alpha) + '/trajectory_tc.npy',
+        trajectory_tc)
+    np.save(
+        'simulation_data/multistep_linear_residual_fast_previous/' + str(state_order) + '_' + str(alpha) + '/trajectory_ws.npy',
+        trajectory_ws)
 
 
 if __name__ == '__main__':
@@ -149,6 +155,14 @@ if __name__ == '__main__':
                        'model/Multistep_linear/residual_model/model_40.pt',
                        'model/Multistep_linear/residual_model/model_45.pt',
                        'model/Multistep_linear/residual_model/model_50.pt']
+    state_orders = [50, 50, 50, 50, 50]
+    action_orders = [50, 50, 50, 50, 50]
+    model_filenames = ['model/Multistep_linear/residual_model/model_50.pt',
+                       'model/Multistep_linear/residual_model/model_50.pt',
+                       'model/Multistep_linear/residual_model/model_50.pt',
+                       'model/Multistep_linear/residual_model/model_50.pt',
+                       'model/Multistep_linear/residual_model/model_50.pt']
+    alphas = [0, 0.01, 0.1, 1, 10]
     H = 50
     for i in range(len(state_orders)):
-        main(state_orders[i], action_orders[i], model_filenames[i], H)
+        main(state_orders[i], action_orders[i], model_filenames[i], H, alphas[i])

@@ -5,10 +5,11 @@ import wandb
 
 from torch.utils.data import DataLoader, TensorDataset
 from src.utils.load_data import load_data
-from src.model.get_model import get_reparam_multi_linear_model, get_multi_linear_model, get_multi_linear_residual_model
+from src.model.get_model import get_multi_linear_residual_model
 from src.utils.data_preprocess import get_data
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 
 # Hyperparameters
 
@@ -18,13 +19,12 @@ def main(state_order, action_order):
     # state_order = 20
     # action_order = 20
     BS = 64
-    H = 50
+    H = 100
     scale_min = 20.0
     scale_max = 420.0
     scaler = (scale_min, scale_max)
     # Prepare Model and Dataset
 
-    # m = get_multi_linear_model(state_dim, action_dim, state_order, action_order).to(DEVICE)
     m = get_multi_linear_residual_model(state_dim, action_dim, state_order, action_order).to(DEVICE)
 
     train_data_path = ['docs/new_data/expert/data_3.csv', 'docs/new_data/icgrnn/data_3.csv',
@@ -119,14 +119,16 @@ def main(state_order, action_order):
                     test_predicted_y = m.rollout(test_history_xs, test_history_us, test_us)
                     test_loss = test_criteria(test_predicted_y, test_ys)
                     log_dict['test_loss'] = test_loss.item()
-            torch.save(m.state_dict(), join(wandb.run.dir, 'model.pt'))
+            torch.save(m.state_dict(),
+                       join(wandb.run.dir, 'model_' + str(state_order) + '_' + str(action_order) + '.pt'))
             wandb.log(log_dict)
 
     run.finish()
 
 
 if __name__ == '__main__':
-    state_orders = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
-    action_orders = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+    state_orders = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    action_orders = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
     for i in range(len(state_orders)):
-        main(state_orders[i], action_orders[i])
+        for j in range(len(action_orders)):
+            main(state_orders[i], action_orders[j])
