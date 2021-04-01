@@ -10,7 +10,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(device)
 
 
-def main(state_order, action_order, model_filename):
+def main(state_order, action_order, model_filename, test_data_path, rollout_window):
     state_dim = 140
     action_dim = 40
     m = get_multi_linear_residual_model(state_dim, action_dim, state_order, action_order).to(device)
@@ -22,7 +22,7 @@ def main(state_order, action_order, model_filename):
     print('Min. state scaler: {}, Max. state scaler: {}'.format(scaler[0], scaler[1]))
     print('Min. action scaler: {}, Max. action scaler: {}'.format(scaler[0], scaler[1]))
 
-    test_data_path = ['docs/new_data/overshoot/data_1.csv']
+    # test_data_path = ['docs/new_data/overshoot/data_1.csv']
     # test_data_path = ['docs/new_data/icgrnn/data_3.csv']
 
     test_states, test_actions, _ = load_data(paths=test_data_path,
@@ -35,7 +35,7 @@ def main(state_order, action_order, model_filename):
     # print(test_states[0].shape)
     # print(test_actions[0].shape)
 
-    rollout_window = 2400
+    # rollout_window = 2400
     glass_tc_path = 'docs/new_location/glass_TC.csv'
     control_tc_path = 'docs/new_location/control_TC.csv'
 
@@ -82,17 +82,6 @@ if __name__ == '__main__':
     # state_orders = [10, 20, 30, 40, 50]
     # action_orders = [10, 20, 30, 40, 50]
     pre_model_filename = 'model/Multistep_linear/0331/model_'
-    model_filenames = ['model/Multistep_linear/residual_model/model_05.pt',
-                       'model/Multistep_linear/residual_model/model_10.pt',
-                       'model/Multistep_linear/residual_model/model_15.pt',
-                       'model/Multistep_linear/residual_model/model_20.pt',
-                       'model/Multistep_linear/residual_model/model_25.pt',
-                       'model/Multistep_linear/residual_model/model_30.pt',
-                       'model/Multistep_linear/residual_model/model_35.pt',
-                       'model/Multistep_linear/residual_model/model_40.pt',
-                       'model/Multistep_linear/residual_model/model_45.pt',
-                       'model/Multistep_linear/residual_model/model_50.pt']
-
     yss = []
     predicted_yss = []
     uss = []
@@ -108,6 +97,7 @@ if __name__ == '__main__':
     plt.title('Real Glass TC')
     plt.plot(yss[0][0])
     plt.ylim([100, 450])
+    plt.savefig('fig/prediction_performance/real_glass_tc.png')
     plt.show()
 
     row = len(state_orders)
@@ -122,6 +112,7 @@ if __name__ == '__main__':
             axes_flatten[col * i + j].plot(predicted_yss[row * i + j][0])
             axes_flatten[col * i + j].set_ylim([100, 450])
     fig.tight_layout()
+    fig.savefig('fig/prediction_performance/predicted_glass_tc.png')
     plt.show()
 
     plt.figure(12345)

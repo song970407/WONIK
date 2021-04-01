@@ -128,7 +128,7 @@ def main(state_order, action_order):
 
 if __name__ == '__main__':
     state_orders = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-    state_orders = [60, 70, 80, 90, 100]
+    state_orders = [70, 80, 90, 100]
     action_orders = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
     for i in range(len(state_orders)):
         for j in range(len(action_orders)):
