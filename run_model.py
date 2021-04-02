@@ -80,7 +80,8 @@ if __name__ == '__main__':
     state_orders = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
     action_orders = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
     pre_model_filename = 'model/Multistep_linear/0331/model_'
-    test_data_paths = ['docs/new_data/overshoot/data_1.csv','docs/new_data/expert/data_5.csv','docs/new_data/icgrnn/data_2.csv', 'docs/new_data/linear/data_2.csv']
+    test_data_paths = ['docs/new_data/overshoot/data_1.csv', 'docs/new_data/expert/data_3.csv',
+                       'docs/new_data/icgrnn/data_2.csv', 'docs/new_data/linear/data_2.csv']
     rollout_windows = [2400, 900, 900, 900]
     for k in range(len(test_data_paths)):
         yss = []
@@ -89,7 +90,8 @@ if __name__ == '__main__':
         for i in range(len(state_orders)):
             for j in range(len(action_orders)):
                 filename = pre_model_filename + str(state_orders[i]) + '_' + str(action_orders[j]) + '.pt'
-                ys, predicted_ys, us = main(state_orders[i], action_orders[j], filename, test_data_paths[k], rollout_windows[k])
+                ys, predicted_ys, us = main(state_orders[i], action_orders[j], filename, test_data_paths[k],
+                                            rollout_windows[k])
                 yss.append(ys)
                 predicted_yss.append(predicted_ys)
                 uss.append(us)
@@ -98,7 +100,7 @@ if __name__ == '__main__':
         plt.title('Real Glass TC')
         plt.plot(yss[0][0])
         plt.ylim([100, 450])
-        plt.savefig('fig/prediction_model_performance/dataset_'+str(k)+'/real_glass_tc.png')
+        plt.savefig('fig/prediction_model_performance/dataset_' + str(k) + '/real_glass_tc.png')
         plt.show()
 
         row = len(state_orders)
@@ -113,12 +115,12 @@ if __name__ == '__main__':
                 axes_flatten[col * i + j].plot(predicted_yss[row * i + j][0])
                 axes_flatten[col * i + j].set_ylim([100, 450])
         fig.tight_layout()
-        fig.savefig('fig/prediction_model_performance/dataset_'+str(k)+'/predicted_glass_tc.png')
+        fig.savefig('fig/prediction_model_performance/dataset_' + str(k) + '/predicted_glass_tc.png')
         plt.show()
 
         plt.figure(12345)
         plt.plot(uss[0][0])
         plt.title('Work Set')
         plt.ylim([100, 450])
-        fig.savefig('fig/prediction_model_performance/dataset_' + str(k) + '/workset.png')
+        plt.savefig('fig/prediction_model_performance/dataset_' + str(k) + '/workset.png')
         plt.show()

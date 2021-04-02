@@ -13,13 +13,13 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # Hyperparameters
 
-def main(state_order, action_order):
+def main(state_order, action_order, H, is_ridge=False, alpha=0.0):
     state_dim = 140
     action_dim = 40
     # state_order = 20
     # action_order = 20
-    BS = 128
-    H = 100
+    BS = 64
+    # H = 100
     scale_min = 20.0
     scale_max = 420.0
     scaler = (scale_min, scale_max)
@@ -29,17 +29,17 @@ def main(state_order, action_order):
 
     train_data_path = ['docs/new_data/expert/data_3.csv', 'docs/new_data/icgrnn/data_3.csv',
                        'docs/new_data/overshoot/data_2.csv']
-    test_data_path = ['docs/new_data/icgrnn/data_4.csv', 'docs/new_data/overshoot/data_1.csv']
-    # 'docs/new_data/icgrnn/data_2.csv', 'docs/new_data/linear/data_2.csv']
+    test_data_path = ['docs/new_data/expert/data_2.csv', 'docs/new_data/icgrnn/data_4.csv',
+                      'docs/new_data/overshoot/data_1.csv']
     glass_tc_pos_path = 'docs/new_location/glass_TC.csv'
     control_tc_pos_path = 'docs/new_location/control_TC.csv'
 
-    train_states, train_actions, info = load_data(paths=train_data_path,
-                                                  scaling=True,
-                                                  scaler=scaler,
-                                                  preprocess=True,
-                                                  history_x=state_order,
-                                                  history_u=action_order)
+    train_states, train_actions, _ = load_data(paths=train_data_path,
+                                               scaling=True,
+                                               scaler=scaler,
+                                               preprocess=True,
+                                               history_x=state_order,
+                                               history_u=action_order)
 
     # Set te minimum and maximum temperature as 20 and 420
 
@@ -90,14 +90,14 @@ def main(state_order, action_order):
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(opt, T_0=10)
     iters = len(train_loader)
     EPOCHS = 100
-    TEST_EVERY = 100
+    TEST_EVERY = 25
     run = wandb.init(entity='sentinel',
                      name='State Order ' + str(state_order) + ' Action Order ' + str(action_order) + ' H ' + str(H),
                      reinit=True,
-                     project='Multistep_Linear_Res')
+                     project='Multistep_Linear_Residual')
     run.config['state_order'] = state_order
     run.config['action_order'] = action_order
-    run.config['scaler'] = (info['scale_min'], info['scale_max'])
+    run.config['scaler'] = scaler
     num_updates = 0
 
     # Start Training
@@ -105,31 +105,45 @@ def main(state_order, action_order):
         print("Epoch [{}] / [{}]".format(ep, EPOCHS))
         for i, (x0, u0, u, y) in enumerate(train_loader):
             y_predicted = m.rollout(x0, u0, u)
-            loss = criteria(y_predicted, y)
+            loss_accuracy = criteria(y_predicted, y)
+            loss_regularizer = 0.0
+            if is_ridge:
+                loss_regularizer = alpha * (torch.norm(m.A.data, p=1) + torch.norm(m.B.data, p=1))
             opt.zero_grad()
+            loss = loss_accuracy + loss_regularizer
             loss.backward()
             opt.step()
             scheduler.step(ep + i / iters)
             num_updates += 1
             log_dict = {}
+            log_dict['train_loss_accuracy'] = loss_accuracy.item()
+            log_dict['train_loss_regularizer'] = loss_regularizer.item()
             log_dict['train_loss'] = loss.item()
             log_dict['lr'] = opt.param_groups[0]['lr']
             if num_updates % TEST_EVERY == 0:
                 with torch.no_grad():
                     test_predicted_y = m.rollout(test_history_xs, test_history_us, test_us)
-                    test_loss = test_criteria(test_predicted_y, test_ys)
+                    test_loss_accuracy = test_criteria(test_predicted_y, test_ys)
+                    test_loss_regularizer = 0.0
+                    if is_ridge:
+                        test_loss_regularizer = alpha * (
+                                    torch.norm(m.A.data, p=1) + torch.norm(m.B.data, p=1))
+                    test_loss = test_loss_accuracy + test_loss_regularizer
+                    log_dict['test_loss_accuracy'] = test_loss_accuracy.item()
+                    log_dict['test_loss_regularizer'] = test_loss_regularizer.item()
                     log_dict['test_loss'] = test_loss.item()
             torch.save(m.state_dict(),
                        join(wandb.run.dir, 'model_' + str(state_order) + '_' + str(action_order) + '.pt'))
             wandb.log(log_dict)
-
     run.finish()
 
 
 if __name__ == '__main__':
-    state_orders = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-    state_orders = [70, 80, 90, 100]
-    action_orders = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    state_orders = [10, 20, 30, 40, 50]
+    action_orders = [10, 20, 30, 40, 50]
+    H = 100
+    is_ridge = True
+    alpha = 0.0001
     for i in range(len(state_orders)):
         for j in range(len(action_orders)):
-            main(state_orders[i], action_orders[j])
+            main(state_orders[i], action_orders[j], H, is_ridge, alpha)
