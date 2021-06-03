@@ -8,7 +8,7 @@ from torch.utils.data import TensorDataset
 
 from src.PreCo.Correctors import Corrector
 from src.PreCo.Decoders import get_convex_decoder, get_decoder, get_linear_decoder
-from src.PreCo.PreCo import PreCo
+from src.PreCo.PreCo import GraphPreCo
 from src.PreCo.Predictors import Predictor, ConvexPredictor, LinearPredictor
 from src.utils.PreCo.GraphDataLoader import GraphDataLoader
 from src.utils.PreCo.compte_gaussian_nll import compute_gaussian_nll
@@ -108,11 +108,11 @@ def get_model(config):
         decoder = get_linear_decoder(**decoder_kwargs)
 
     obs_dim = 1 if model_config.deterministic else 2
-    m = PreCo(hidden_dim=model_config.preco_hidden_dim,
-              predictor=predictor,
-              corrector=corrector,
-              decoder=decoder,
-              obs_dim=obs_dim)
+    m = GraphPreCo(hidden_dim=model_config.preco_hidden_dim,
+                   predictor=predictor,
+                   corrector=corrector,
+                   decoder=decoder,
+                   obs_dim=obs_dim)
     return m
 
 
