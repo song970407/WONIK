@@ -165,6 +165,10 @@ def get_reparam_multi_linear_model(state_dim, action_dim, state_order, action_or
     return m
 
 
+def get_preco_model(state_dim, action_dim, hidden_dim=256):
+    pred = 
+
+
 if __name__ == '__main__':
     m = get_model()
     print(m)

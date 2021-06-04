@@ -58,8 +58,8 @@ class PreCo(nn.Module):
         for u in us.unbind(dim=1):
             h = self.predict(h, u)
             hs.append(h)
-        hs = torch.stack(hs, dim=1)  # [#. total state nodes x prediction_length x  hidden_dim]
-        xs = self.decoder(hs)  # [#. total state nodes x prediction_length x  hidden_dim]
+        hs = torch.stack(hs, dim=1)  # [H x  hidden_dim]
+        xs = self.decoder(hs)  # [H x  state_dim]
         return xs
 
     def rollout(self, hc, xs, us):
@@ -94,8 +94,8 @@ class PreCo(nn.Module):
         hps = torch.stack(hps, dim=1)  # [B x H x hidden_dim]
 
         # performs latent overshooting
-        latent_overshoot_hps = torch.zeros(g.number_of_nodes('tc'), H, H, self.hidden_dim).to(us[0].device)
-        latent_overshoot_mask = torch.zeros(g.number_of_nodes('tc'), H, H, self.obs_dim).to(us[0].device)
+        latent_overshoot_hps = torch.zeros(B, H, H, self.hidden_dim).to(us[0].device)
+        latent_overshoot_mask = torch.zeros(B, H, H, self.state_dim).to(us[0].device)
         for i, hp in enumerate(hps.unbind(dim=1)[:-1]):
             latent_hps = []
             for j in range(i + 1, H):
@@ -106,7 +106,7 @@ class PreCo(nn.Module):
             latent_overshoot_mask[:, i, i + 1:, :] = 1.0
 
         # decoding the one-step prediction results
-        hcs_dec = self.decoder(hcs)  # [x_t+1, ..., x_t+k]
+        hcs_dec = self.decoder(hcs)  # [x_t+1, ..., x_t+k], [B x H x state_dim]
         hps_dec = self.decoder(hps)  # [x_t+1, ..., x_t+k]
 
         # latent the latent overshooting results
