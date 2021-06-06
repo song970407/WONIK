@@ -51,6 +51,39 @@ def get_data(states: Union[torch.Tensor, List[torch.Tensor]],
     return (history_xs_glass, history_xs_control), history_us, us, (ys_glass, ys_control), pos_tc
 
 
+def get_preco_data(states: Union[torch.Tensor, List[torch.Tensor]],
+                   actions: Union[torch.Tensor, List[torch.Tensor]],
+                   receding_history: int,
+                   receding_horizon: int,
+                   state_dim: int,
+                   action_dim: int,
+                   device: str = 'cpu'):
+    if isinstance(states, torch.Tensor):
+        states = [states]
+        actions = [actions]
+    history_xs = []
+    history_us = []
+    us = []
+    ys = []
+    for state, action in zip(states, actions):
+        num_obs = action.shape[0]
+        for i in range(num_obs - receding_horizon - receding_history + 2):
+            history_xs.append(state[i:i + receding_history, :])
+            history_us.append(action[i:i + receding_history - 1, :])
+            us.append(action[i + receding_history - 1:i + receding_history + receding_horizon - 1, :])
+            ys.append(state[i + receding_history:i + receding_history + receding_horizon, :])
+
+    history_xs = torch.stack(history_xs).transpose(1, 2).to(device)
+    history_xs_glass = history_xs[:, :state_dim, :]
+    history_xs_control = history_xs[:, state_dim:, :]
+    history_us = torch.stack(history_us).transpose(1, 2).to(device)
+    us = torch.stack(us).transpose(1, 2).to(device)
+    ys = torch.stack(ys).transpose(1, 2).to(device)
+    ys_glass = ys[:, :state_dim, :]
+    ys_control = ys[:, state_dim:, :]
+    return (history_xs_glass, history_xs_control), history_us, us, (ys_glass, ys_control)
+
+
 def get_xuy(states: Union[torch.Tensor, List[torch.Tensor]],
             actions: Union[torch.Tensor, List[torch.Tensor]],
             window_size: int,

@@ -3,26 +3,28 @@ import torch.nn as nn
 
 class PreCo(nn.Module):
     def __init__(self,
-                 hidden_dim: int,
                  predictor: nn.Module,
                  corrector: nn.Module,
                  decoder: nn.Module,
                  state_dim: int,
-                 action_dim: int):
+                 action_dim: int,
+                 hidden_dim: int):
         super(PreCo, self).__init__()
-
-        self.hidden_dim = hidden_dim
         self.predictor = predictor
         self.corrector = corrector
         self.decoder = decoder
         self.state_dim = state_dim
         self.action_dim = action_dim
+        self.hidden_dim = hidden_dim
 
     def correct(self, h, x):
-        return self.corrector(h, x)
+        return self.corrector(torch.cat([h, x], dim=-1))
 
     def predict(self, h, u):
-        return self.predictor(h, u)
+        return self.predictor(torch.cat([h, u], dim=-1))
+
+    def decode(self, h):
+        return self.decoder(h)
 
     def filter_history(self, xs, us, h0=None):
         """
@@ -59,7 +61,7 @@ class PreCo(nn.Module):
             h = self.predict(h, u)
             hs.append(h)
         hs = torch.stack(hs, dim=1)  # [H x  hidden_dim]
-        xs = self.decoder(hs)  # [H x  state_dim]
+        xs = self.decode(hs)  # [H x  state_dim]
         return xs
 
     def rollout(self, hc, xs, us):
@@ -68,7 +70,6 @@ class PreCo(nn.Module):
             hc: [B x hidden_dim]
             xs: [B x H x state_dim]
             us: [B x H x action_dim]
-
         Returns:
         """
         B = us.shape[0]
@@ -106,11 +107,11 @@ class PreCo(nn.Module):
             latent_overshoot_mask[:, i, i + 1:, :] = 1.0
 
         # decoding the one-step prediction results
-        hcs_dec = self.decoder(hcs)  # [x_t+1, ..., x_t+k], [B x H x state_dim]
-        hps_dec = self.decoder(hps)  # [x_t+1, ..., x_t+k]
+        hcs_dec = self.decode(hcs)  # [x_t+1, ..., x_t+k], [B x H x state_dim]
+        hps_dec = self.decode(hps)  # [x_t+1, ..., x_t+k]
 
         # latent the latent overshooting results
-        latent_overshoot_dec = self.decoder(latent_overshoot_hps)
+        latent_overshoot_dec = self.decode(latent_overshoot_hps)
 
         ret = dict()
         ret['hcs_dec'] = hcs_dec

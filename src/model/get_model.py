@@ -4,6 +4,7 @@ from typing import Union, List
 from src.model.GraphStateSpaceModels import GraphSSM_GAT
 from src.model.HeteroGraphSSM import HeteroGraphSSM
 from src.model.LinearStateSpaceModels import MultiLinearSSM, ReparamMultiLinearSSM, MultiLinearResSSM
+from src.model.PreCo import PreCo
 from src.model.distance_kernel import RBFKernel
 from src.nn.GraphModules.ConvexModule import ConvexLinear, ConvexGATConv
 from src.nn.MLP import MultiLayerPerceptron as MLP
@@ -165,8 +166,20 @@ def get_reparam_multi_linear_model(state_dim, action_dim, state_order, action_or
     return m
 
 
-def get_preco_model(state_dim, action_dim, hidden_dim=256):
-    pred = 
+def get_preco_model(state_dim, action_dim, hidden_dim=256, hidden_mlp_dim=256):
+    pred = nn.Sequential(nn.Linear(hidden_dim + action_dim, hidden_mlp_dim),
+                         nn.Tanh(),
+                         nn.Linear(hidden_mlp_dim, hidden_dim),
+                         nn.Tanh())
+    corr = nn.Sequential(nn.Linear(hidden_dim + state_dim, hidden_mlp_dim),
+                         nn.Tanh(),
+                         nn.Linear(hidden_mlp_dim, hidden_dim),
+                         nn.Tanh())
+    dec = nn.Sequential(nn.Linear(hidden_dim, hidden_mlp_dim),
+                        nn.Tanh(),
+                        nn.Linear(hidden_mlp_dim, state_dim))
+    m = PreCo(pred, corr, dec, state_dim, action_dim, hidden_dim)
+    return m
 
 
 if __name__ == '__main__':

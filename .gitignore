@@ -1,3 +1,9 @@
+# data
+experiment_log/
+experiment_csv/
+fig/
+control_log_simulation/
+
 # pycharm cache
 .idea/
 
