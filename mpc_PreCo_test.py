@@ -1,3 +1,5 @@
+import os
+
 import torch
 import numpy as np
 import time
@@ -179,6 +181,9 @@ def main(smooth_u_type, H, alpha, optimizer_mode, initial_solution, max_iter, u_
         trajectory_tc.append(observed_tc[0])
         trajectory_ws.append(workset)
     # print(log_history)
+    path = 'simulation_data/PreCo'
+    if not os.path.exists(path):
+        os.makedirs(path)
     with open('simulation_data/PreCo/control_log.txt', 'wb') as f:
         pickle.dump(log_history, f)
     trajectory_tc = np.concatenate(trajectory_tc, axis=0)
