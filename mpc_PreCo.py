@@ -367,7 +367,7 @@ if __name__ == '__main__':
     alphas = [1000]  # will be ignored if smooth_u_type == constraint or boundary
     optimizer_modes = ['Adam']  # Adam or LBFGS
     initial_solutions = ['previous']  # target or previous
-    max_iters = [100]  # Maximum number of optimize  r iterations
+    max_iters = [50]  # Maximum number of optimize  r iterations
     u_range = 0.03  # will be ignored if smooth_u_type == penalty, cannot be list
 
     for is_control_TC in is_control_TCs:

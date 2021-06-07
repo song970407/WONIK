@@ -113,6 +113,10 @@ def main(smooth_u_type, H, alpha, optimizer_mode, initial_solution, max_iter, u_
     stable150 = 181
     anneal150 = 182
 
+    heatup150 = 300
+    stable150 = 100
+    anneal150 = 100
+
     initial_temp = 150.0
     heatup_times = [heatup150]
     anneal_times = [stable150 + anneal150 + H]
@@ -128,6 +132,7 @@ def main(smooth_u_type, H, alpha, optimizer_mode, initial_solution, max_iter, u_
 
     sample_data_path = 'docs/new_data/expert/data_1.csv'
     states, actions, _ = load_preco_data(paths=sample_data_path,
+                                         scaling=False,
                                          preprocess=True,
                                          receding_history=receding_history)
     history_tc = states[0][:receding_history, :state_dim].cpu().detach().numpy()
@@ -164,8 +169,9 @@ def main(smooth_u_type, H, alpha, optimizer_mode, initial_solution, max_iter, u_
             x0 = (x0 - state_scaler[0]) / (state_scaler[1] - state_scaler[0])
             u0 = (u0 - action_scaler[0]) / (action_scaler[1] - action_scaler[0])
             h0 = m.filter_history(x0, u0)
-            observed_tc = m.multi_step_prediction(h0, workset.unsqueeze(dim=0))  # [1 x 140]
+            observed_tc = m.multi_step_prediction(h0, workset.unsqueeze(dim=0)) # [1 x 140]
             observed_tc = observed_tc * (state_scaler[1] - state_scaler[0]) + state_scaler[0]  # unscaling
+            observed_tc = observed_tc.cpu().detach().numpy()
         workset = workset * (action_scaler[1] - action_scaler[0]) + action_scaler[0]
         workset = workset.cpu().detach().numpy()  # [1 x 40] numpy.array
         now_target = target[t, 0] * (state_scaler[1] - state_scaler[0]) + state_scaler[0]
@@ -196,6 +202,6 @@ if __name__ == '__main__':
     alpha = 1000  # will be ignored if smooth_u_type == constraint or boundary
     optimizer_mode = 'Adam'  # Adam or LBFGS
     initial_solution = 'previous'  # target or previous
-    max_iter = 50  # Maximum number of optimize  r iterations
+    max_iter = 100  # Maximum number of optimize  r iterations
     u_range = 0.03  # will be ignored if smooth_u_type == penalty, cannot be list
     main(smooth_u_type, H, alpha, optimizer_mode, initial_solution, max_iter, u_range)
