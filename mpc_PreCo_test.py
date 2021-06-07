@@ -161,6 +161,9 @@ def main(smooth_u_type, H, alpha, optimizer_mode, initial_solution, max_iter, u_
         workset = action[0:1, :]
         initial_ws = torch.cat([action[1:], action[-1:]], dim=0)
         log_history.append(log)
+        # plt.title(str(t))
+        # plt.plot(log['trajectory_loss'])
+        # plt.show()
         with torch.no_grad():
             x0 = torch.from_numpy(history_tc).float().to(device).unsqueeze(dim=0)
             u0 = torch.from_numpy(history_ws).float().to(device).unsqueeze(dim=0)
@@ -203,6 +206,6 @@ if __name__ == '__main__':
     alpha = 1000  # will be ignored if smooth_u_type == constraint or boundary
     optimizer_mode = 'Adam'  # Adam or LBFGS
     initial_solution = 'previous'  # target or previous
-    max_iter = 50  # Maximum number of optimize  r iterations
+    max_iter = 100  # Maximum number of optimize  r iterations
     u_range = 0.03  # will be ignored if smooth_u_type == penalty, cannot be list
     main(smooth_u_type, H, alpha, optimizer_mode, initial_solution, max_iter, u_range)
