@@ -113,10 +113,6 @@ def main(smooth_u_type, H, alpha, optimizer_mode, initial_solution, max_iter, u_
     stable150 = 181
     anneal150 = 182
 
-    heatup150 = 300
-    stable150 = 100
-    anneal150 = 100
-
     initial_temp = 150.0
     heatup_times = [heatup150]
     anneal_times = [stable150 + anneal150 + H]
@@ -183,12 +179,12 @@ def main(smooth_u_type, H, alpha, optimizer_mode, initial_solution, max_iter, u_
         trajectory_tc.append(observed_tc[0])
         trajectory_ws.append(workset)
     # print(log_history)
-    # with open('simulation_data/PreCo/control_log.txt', 'wb') as f:
-        # pickle.dump(log_history, f)
+    with open('simulation_data/PreCo/control_log.txt', 'wb') as f:
+        pickle.dump(log_history, f)
     trajectory_tc = np.concatenate(trajectory_tc, axis=0)
     trajectory_ws = np.concatenate(trajectory_ws, axis=0)
-    # np.save('simulation_data/PreCo/trajectory_tc.npy', trajectory_tc)
-    # np.save('simulation_data/PreCo/trajectory_ws.npy', trajectory_ws)
+    np.save('simulation_data/PreCo/trajectory_tc.npy', trajectory_tc)
+    np.save('simulation_data/PreCo/trajectory_ws.npy', trajectory_ws)
     plt.plot(trajectory_tc)
     plt.show()
     plt.plot(trajectory_ws)
@@ -202,6 +198,6 @@ if __name__ == '__main__':
     alpha = 1000  # will be ignored if smooth_u_type == constraint or boundary
     optimizer_mode = 'Adam'  # Adam or LBFGS
     initial_solution = 'previous'  # target or previous
-    max_iter = 100  # Maximum number of optimize  r iterations
+    max_iter = 50  # Maximum number of optimize  r iterations
     u_range = 0.03  # will be ignored if smooth_u_type == penalty, cannot be list
     main(smooth_u_type, H, alpha, optimizer_mode, initial_solution, max_iter, u_range)
