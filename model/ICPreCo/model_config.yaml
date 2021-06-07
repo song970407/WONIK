@@ -1,0 +1,44 @@
+data:
+  action_ws: true
+  c_tc_pos: docs/new_location/control_TC.csv
+  g_tc_pos: docs/new_location/glass_TC.csv
+  scaling: true
+  t2t_threshold: 850.0
+  test_path:
+  - docs/new_data/expert/data_4.csv
+  train_path:
+  - docs/new_data/expert/data_1.csv
+  - docs/new_data/expert/data_2.csv
+  - docs/new_data/expert/data_3.csv
+  - docs/new_data/linear/data_1.csv
+  - docs/new_data/icgrnn/data_1.csv
+model:
+  convex: true
+  corrector:
+    mlp_h_dim: 32
+  decoder:
+    out_dim: 16
+  deterministic: true
+  preco_hidden_dim: 32
+  predictor:
+    mlp_h_dim: 32
+train:
+  batch_size: 6
+  epoch: 20
+  future_len: 20
+  history_len: 20
+  log_every: 25
+  opt_config:
+    kwargs:
+      lr: 0.0001
+    name: Adam
+  scheduler_config:
+    kwargs:
+      T_0: 50
+    name: CosineAnnealingWarmRestarts
+    use_scheduler: false
+wandb:
+  tags:
+  - ws
+  - deterministic
+  - cvx

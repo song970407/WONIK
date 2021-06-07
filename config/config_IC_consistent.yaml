@@ -1,0 +1,99 @@
+wandb_version: 1
+
+MPC:
+  desc: null
+  value:
+    DEVICE: cpu
+    H: 5
+    Q: 10000
+    R: 1
+    SIMULATION_PERTURBATION: 0.0001
+    action_dim: 1
+    action_max: 5.0
+    action_min: -10.0
+    is_convex: true
+    load_model_path: model/model_icgatrnn.pt
+    r: 0
+    state_dim: 1
+    test_data_path:
+    - docs/new_data/test/data_6.csv
+_wandb:
+  desc: null
+  value:
+    cli_version: 0.10.11
+    code_path: code/train_grnn.py
+    framework: torch
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    python_version: 3.7.9
+data:
+  desc: null
+  value:
+    ACTION_DIF: false
+    ACTION_WS: true
+    PREPROCESS: true
+    SCALING: true
+    scaler:
+    - 0.0
+    - 389.79998779296875
+    test_data_path:
+    - docs/new_data/train/data_9.csv
+    - docs/new_data/test/data_6.csv
+    train_data_path:
+    - docs/new_data/train/data_1.csv
+    - docs/new_data/train/data_2.csv
+    - docs/new_data/train/data_3.csv
+    - docs/new_data/train/data_4.csv
+    - docs/new_data/train/data_5.csv
+    - docs/new_data/train/data_6.csv
+    - docs/new_data/train/data_7.csv
+    - docs/new_data/train/data_8.csv
+    - docs/new_data/test/data_1.csv
+    - docs/new_data/test/data_2.csv
+    - docs/new_data/test/data_3.csv
+    - docs/new_data/test/data_4.csv
+    - docs/new_data/test/data_5.csv
+graph:
+  desc: null
+  value:
+    DIST_THRESHOLD: 850
+    DIST_WEIGHT:
+    - 1.0
+    - 1.0
+    - 1.0
+    ONLY_CONTROL: true
+    control_tc_pos_path: docs/new_location/control_TC.csv
+    glass_tc_pos_path: docs/new_location/glass_TC.csv
+model:
+  desc: null
+  value:
+    ENC_TCN: false
+    HIST_WINDOW: 100
+    RESIDUAL: false
+    dec_reparam_method:
+    - ReLU
+    hidden_reparam_method:
+    - Softmax
+reference:
+  desc: null
+  value:
+    anneal_times:
+    - 363
+    heatup_times:
+    - 545
+    initial_temp: 150
+    target_temps:
+    - 375
+train:
+  desc: null
+  value:
+    BS: 128
+    CONSISTENT_LOSS: true
+    DEVICE: cuda
+    EPOCHS: 100
+    LR: 0.001
+    PERTURB_X_PARAM: 0.0
+    ROLLOUT_WINDOWS:
+    - 50
+    TEST_EVERY: 100
+    save_model_path: model_icgatrnn.pt
