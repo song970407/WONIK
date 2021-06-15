@@ -148,9 +148,12 @@ def main(model_name, smooth_u_type, H, alpha, optimizer_mode, initial_solution, 
     for t in range(T - H):
         # print("Now time [{}] / [{}]".format(t, T - H))
         start = time.time()
+
+        # Step 1: Find the best action trajectory by solving MPC optimization problem
         action, log = runner.solve(history_tc, history_ws, target[t:t + H, :], initial_ws)
         end = time.time()
-        # Compute workset(un-scaled) of current time and initial_ws(scaled) of next time from action(scaled)
+
+        # Step 2: Compute the workset(un-scaled) of current time and initial_ws(scaled) of next time from action(scaled)
         if is_del_u:
             if from_target:
                 workset = target[t:t + 1, :action_dim] + action[0:1, :]
@@ -176,12 +179,9 @@ def main(model_name, smooth_u_type, H, alpha, optimizer_mode, initial_solution, 
         log_msg += 'loss :{:.5f} | '.format(log['trajectory_loss'][-1])
         log_msg += 'num_step : {} \n'.format(len(log['trajectory_loss']))
         print(log_msg)
-
         log_history.append(log)
-        # plt.title(str(t))
-        # plt.plot(log['trajectory_loss'])
-        # plt.show()
-        # Observe the TC of the next time by using the current action
+
+        # Step 3 : Observe the TC of the next time by using the current action and update history_tc, history_ws
         with torch.no_grad():
             x0 = torch.from_numpy(history_tc).float().to(device).unsqueeze(dim=0)
             u0 = torch.from_numpy(history_ws).float().to(device).unsqueeze(dim=0)
@@ -204,12 +204,12 @@ def main(model_name, smooth_u_type, H, alpha, optimizer_mode, initial_solution, 
     path = 'simulation_data/{}'.format(model_name)
     if not os.path.exists(path):
         os.makedirs(path)
-    with open('simulation_data/PreCo/control_log.txt', 'wb') as f:
+    with open('simulation_data/{}/control_log.txt'.format(model_name), 'wb') as f:
         pickle.dump(log_history, f)
     trajectory_tc = np.concatenate(trajectory_tc, axis=0)
     trajectory_ws = np.concatenate(trajectory_ws, axis=0)
-    np.save('simulation_data/PreCo/trajectory_tc.npy', trajectory_tc)
-    np.save('simulation_data/PreCo/trajectory_ws.npy', trajectory_ws)
+    np.save('simulation_data/{}/trajectory_tc.npy'.model_name, trajectory_tc)
+    np.save('simulation_data/{}/trajectory_ws.npy'.model_name, trajectory_ws)
     plt.plot(trajectory_tc)
     plt.show()
     plt.plot(trajectory_ws)

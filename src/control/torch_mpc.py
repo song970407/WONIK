@@ -498,7 +498,7 @@ class PreCoTorchMPC(nn.Module):
         action_dim = history_ws.shape[2]
         with stopit.ThreadingTimeout(self.timeout) as to_ctx_mgr:
             start = time.time()
-            crit = torch.nn.MSELoss(reduction='mean')
+            crit = torch.nn.MSELoss(reduction='mean')  # it was 'sum'
             log = {}
             solve = False
             if self.is_logging:
@@ -567,7 +567,8 @@ class PreCoTorchMPC(nn.Module):
                     prediction = self.predict_future(h0, computed_us)
                 loss_objective = crit(prediction[:, :, :state_dim], target)
                 init_concat_us = torch.cat([history_ws[:, -1:, :], computed_us], dim=1)
-                loss_delta_u = (init_concat_us[:, 1:, :] - init_concat_us[:, :-1, :]).pow(2).mean()
+                loss_delta_u = (init_concat_us[:, 1:, :] - init_concat_us[:, :-1, :]).pow(2)
+                loss_delta_u = loss_delta_u.mean()  # it was 'sum()'
                 loss_delta_u = self.alpha * loss_delta_u
                 loss = loss_objective + loss_delta_u
 

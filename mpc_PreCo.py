@@ -262,6 +262,7 @@ def main(model_name, receding_history, receding_horizon, alpha, optimizer_mode, 
                 stop = True
                 step_log.write('ready state NG')
                 continue
+            # Step 1: Find the best action trajectory by solving MPC optimization problem
             stepTime = plc.step_time
             if stepName == stable_step:
                 step_time = stepTime + int(heatup150 * 5)
@@ -269,13 +270,11 @@ def main(model_name, receding_history, receding_horizon, alpha, optimizer_mode, 
                 step_time = stepTime + int(heatup150 * 5) + int(stable150 * 5)
             else:
                 step_time = stepTime  # steptime calculation
-
             quot = int(step_time // 5)
             step = quot
-
             action, log = runner.solve(history_tc, history_ws, target[step:step + receding_horizon, :], initial_ws)
 
-            # Processing Workset
+            # Step 2: Compute the workset(un-scaled) of current time and initial_ws(scaled) of next time
             if is_del_u:
                 if from_target:
                     workset = target[step:step + 1, :action_dim] + action[0:1, :]
@@ -293,19 +292,13 @@ def main(model_name, receding_history, receding_horizon, alpha, optimizer_mode, 
                     initial_ws = torch.cat([action[1:], action[-1:]], dim=0)
                 else:
                     initial_ws = target[step + 1: step + receding_horizon + 1, :action_dim]
-
-            log_history.append(log)
-
-            # observed_tc = np.array(plc.glass_tc, dtype='float32').reshape(1, state_dim)
-            # print("obs tc shape {}".format(observed_tc.shape))
             workset = workset * (action_scaler[1] - action_scaler[0]) + action_scaler[0]
             workset = workset.cpu().detach().numpy()  # [1 x 40] numpy.array
+            log_history.append(log)
 
             # Expected input shape of plc.set_heater() = [action_dim (=40) x 1]
             wsvalue = workset.reshape(action_dim, 1)
-
             bCheck = np.isnan(wsvalue).any()
-
             if bCheck:
                 continue
             else:
@@ -313,12 +306,11 @@ def main(model_name, receding_history, receding_horizon, alpha, optimizer_mode, 
                 step_log.write(
                     'StepTime : {} PLC StepTime : {}, Step : {}, StepName : {}'.format(step_time, stepTime, step,
                                                                                        stepName))
-
         # Enter if heatup is not coming yet
         else:
             time.sleep(0.1)
 
-        # Any way, observe TC and Workset
+        # Step 3 : Observe the TC of the next time by using the current action and update history_tc, history_ws
         elapsed = time.time() - start_time
         wait_for = max(4.5 - elapsed, 0)
         time.sleep(wait_for)
@@ -331,12 +323,9 @@ def main(model_name, receding_history, receding_horizon, alpha, optimizer_mode, 
         history_ws = np.concatenate([history_ws[1:, :],
                                      workset],
                                     axis=0)
-
         # step_log.write('TC {} WS {}'.format(observed_tc, workset))
-
         trajectory_tc.append(observed_tc)
         trajectory_ws.append(workset)
-
         elapsed = time.time() - start_time
         wait_for = max(5.0 - elapsed, 0)
         time.sleep(wait_for)
@@ -354,7 +343,7 @@ if __name__ == '__main__':
     # Hyper-parameters for MPC optimizer
     receding_history = 50
     receding_horizon = 100
-    alpha = 1000  # will be ignored if smooth_u_type == constraint or boundary
+    alpha = 100  # will be ignored if smooth_u_type == constraint or boundary
     optimizer_mode = 'Adam'  # Adam or LBFGS
     smooth_u_type = 'boundary'  # penalty or constraint or boundary, cannot be list
     initial_solution = 'previous'  # target or previous
