@@ -3,9 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="748aab16-852b-4aaf-9d16-996c6b537103" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mpc_PreCo.py" beforeDir="false" afterPath="$PROJECT_DIR$/mpc_PreCo.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/mpc_PreCo_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/mpc_PreCo_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/control/torch_mpc.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/control/torch_mpc.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -204,7 +202,7 @@
       <workItem from="1623116689509" duration="12289000" />
       <workItem from="1623204526956" duration="14764000" />
       <workItem from="1623320013269" duration="1556000" />
-      <workItem from="1623759150304" duration="2720000" />
+      <workItem from="1623759150304" duration="4856000" />
     </task>
     <servers />
   </component>
