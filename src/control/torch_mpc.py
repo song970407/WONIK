@@ -1,9 +1,10 @@
+import time
+
 import numpy as np
 import stopit
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import time
 
 
 class Actions(nn.Module):
@@ -441,7 +442,6 @@ class LinearTorchMPC(nn.Module):
 class PreCoTorchMPC(nn.Module):
 
     def __init__(self, model,
-                 time_aggregator: str = 'sum',
                  alpha: float = 1.0,
                  is_del_u: bool = False,
                  from_target: bool = False,
@@ -460,7 +460,6 @@ class PreCoTorchMPC(nn.Module):
             print("Initiating solver with {}".format(device))
         self.device = device
         self.model = model.to(device)
-        self.time_aggregator = time_aggregator
         self.alpha = alpha
         self.is_del_u = is_del_u
         self.from_target = from_target
@@ -475,6 +474,8 @@ class PreCoTorchMPC(nn.Module):
         self.timeout = timeout
         self.is_logging = is_logging
         self.opt_config = opt_config
+
+        self.tol = 1e-5
 
     def compute_us_from_del_u(self, initial_u, del_u, weights):
         dus = torch.repeat_interleave(del_u.unsqueeze(dim=0), repeats=del_u.shape[0], dim=0)
@@ -497,8 +498,9 @@ class PreCoTorchMPC(nn.Module):
         action_dim = history_ws.shape[2]
         with stopit.ThreadingTimeout(self.timeout) as to_ctx_mgr:
             start = time.time()
-            crit = torch.nn.MSELoss(reduction='sum')
+            crit = torch.nn.MSELoss(reduction='mean')
             log = {}
+            solve = False
             if self.is_logging:
                 log['history_tc'] = history_tc
                 log['history_ws'] = history_ws
@@ -515,7 +517,10 @@ class PreCoTorchMPC(nn.Module):
             us.data = us.data.clamp(min=self.u_min, max=self.u_max)
             with torch.no_grad():
                 h0 = self.filter_history(history_tc, history_ws)
-            opt = torch.optim.Adam([us], lr=1e-3)
+            # opt = torch.optim.Adam([us], lr=1e-3)
+            opt = torch.optim.Adam([us], lr=0.5 * 1e-2)
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt)
+
             for i in range(self.max_iter):
                 opt.zero_grad()
                 if self.is_del_u:
@@ -527,13 +532,15 @@ class PreCoTorchMPC(nn.Module):
                     prediction = self.predict_future(h0, computed_us)
                 loss_objective = crit(prediction[:, :, :state_dim], target)
                 init_concat_us = torch.cat([history_ws[:, -1:, :], computed_us], dim=1)
-                loss_delta_u = (init_concat_us[:, 1:, :] - init_concat_us[:, :-1, :]).pow(2).sum()
+                loss_delta_u = (init_concat_us[:, 1:, :] - init_concat_us[:, :-1, :]).pow(2)
+                loss_delta_u = loss_delta_u.mean()  # it was 'sum()'
                 loss_delta_u = self.alpha * loss_delta_u
                 loss = loss_objective + loss_delta_u
                 loss.backward()
+                scheduler.step(loss)
                 if self.is_logging:
                     with torch.no_grad():
-                        trajectory_us_value.append(computed_us.tolist())
+                        trajectory_us_value.append(us.tolist())
                         trajectory_loss_objective.append(loss_objective.item())
                         trajectory_loss_delta_u.append(loss_delta_u.item())
                         trajectory_loss.append(loss.item())
@@ -542,6 +549,10 @@ class PreCoTorchMPC(nn.Module):
                 if self.is_logging:
                     end = time.time()
                     trajectory_time.append(end - start)
+
+                if loss <= self.tol:
+                    solve = True
+                    break
 
         if to_ctx_mgr.state == to_ctx_mgr.TIMED_OUT:
             us.data = us.data.clamp(min=self.u_min, max=self.u_max)
@@ -556,11 +567,11 @@ class PreCoTorchMPC(nn.Module):
                     prediction = self.predict_future(h0, computed_us)
                 loss_objective = crit(prediction[:, :, :state_dim], target)
                 init_concat_us = torch.cat([history_ws[:, -1:, :], computed_us], dim=1)
-                loss_delta_u = (init_concat_us[:, 1:, :] - init_concat_us[:, :-1, :]).pow(2).sum()
+                loss_delta_u = (init_concat_us[:, 1:, :] - init_concat_us[:, :-1, :]).pow(2).mean()
                 loss_delta_u = self.alpha * loss_delta_u
                 loss = loss_objective + loss_delta_u
 
-                trajectory_us_value.append(computed_us.tolist())
+                trajectory_us_value.append(us.tolist())
                 trajectory_loss_objective.append(loss_objective.item())
                 trajectory_loss_delta_u.append(loss_delta_u.item())
                 trajectory_loss.append(loss.item())
@@ -578,6 +589,7 @@ class PreCoTorchMPC(nn.Module):
             log['optimal_us_value'] = trajectory_us_value[idx]
             log['idx_optimal_us_value'] = idx
             log['total_time'] = time.time() - start
+        log['solve'] = solve
         return optimal_u[0], log
 
     # HAVE TO FIX

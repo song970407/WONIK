@@ -16,6 +16,7 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 def train_preco(train_dict):
+    model_name = train_dict['model_name']
     state_dim = train_dict['state_dim']
     action_dim = train_dict['action_dim']
     hidden_dim = train_dict['hidden_dim']
@@ -29,7 +30,8 @@ def train_preco(train_dict):
     train_data_path = train_dict['train_data_path']
     test_data_path = train_dict['test_data_path']
 
-    m = get_preco_model(state_dim, action_dim, hidden_dim).to(DEVICE)
+    load_saved = False
+    m = get_preco_model(model_name, load_saved, state_dim, action_dim, hidden_dim).to(DEVICE)
 
     train_states, train_actions, _ = load_preco_data(paths=train_data_path,
                                                      scaling=True,
@@ -75,7 +77,7 @@ def train_preco(train_dict):
     save_every = 100
     run = wandb.init(entity='sentinel',
                      config=train_dict,
-                     name='History: {}, Horizon: {}'.format(receding_history, receding_horizon),
+                     name='{}, History: {}, Horizon: {}'.format(model_name, receding_history, receding_horizon),
                      reinit=True,
                      project='WONIK_PreCo')
     num_updates = 0
@@ -139,10 +141,10 @@ def train_preco(train_dict):
                     test_loss = hcs_dec_loss.item() + hps_dec_loss.item() + latent_overshoot_dec_loss.item()
                     if best_test_loss == None:
                         best_test_loss = test_loss
-                        torch.save(m.state_dict(), 'model/PreCo.pt')
+                        torch.save(m.state_dict(), 'model/{}.pt')
                     elif test_loss < best_test_loss:
                         best_test_loss = test_loss
-                        torch.save(m.state_dict(), 'model/PreCo.pt')
+                        torch.save(m.state_dict(), 'model/{}.pt')
             if num_updates % save_every == 0:
                 torch.save(m.state_dict(), join(wandb.run.dir, 'model.pt'))
             wandb.log(log_dict)
@@ -151,6 +153,7 @@ def train_preco(train_dict):
 
 if __name__ == '__main__':
     train_dict = {
+        'model_name': 'PreCo1',
         'state_dim': 140,
         'action_dim': 40,
         'hidden_dim': 256,

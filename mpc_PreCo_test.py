@@ -1,18 +1,14 @@
 import os
-
-import torch
-import numpy as np
-import time
 import pickle
+import time
+
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
 
-from box import Box
-
+from src.control.torch_mpc import PreCoTorchMPC
 from src.model.get_model import get_preco_model
 from src.utils.load_data import load_preco_data
-from src.utils.data_preprocess import get_preco_data
-from src.control.torch_mpc import PreCoTorchMPC
-
 # Check whether the GPU (CUDA) is available or not
 from src.utils.reference_generator import generate_reference
 
@@ -36,7 +32,6 @@ class Runner:
                  timeout=5.0,
                  is_logging=True):
         self.solver = PreCoTorchMPC(model=model,
-                                    time_aggregator='sum',
                                     optimizer_mode=optimizer_mode,
                                     max_iter=max_iter,
                                     alpha=alpha,
@@ -66,7 +61,7 @@ class Runner:
         return action, log
 
 
-def main(smooth_u_type, H, alpha, optimizer_mode, initial_solution, max_iter, u_range):
+def main(model_name, smooth_u_type, H, alpha, optimizer_mode, initial_solution, max_iter, u_range):
     # Setting
     state_dim = 140
     action_dim = 40
@@ -100,9 +95,8 @@ def main(smooth_u_type, H, alpha, optimizer_mode, initial_solution, max_iter, u_
     is_logging = True
     time_limit = 4.5  # seconds
 
-    model_filename = 'model/PreCo.pt'
-    m = get_preco_model(state_dim, action_dim, hidden_dim)
-    m.load_state_dict(torch.load(model_filename, map_location=device))
+    load_saved = True
+    m = get_preco_model(model_name, load_saved, state_dim, action_dim, hidden_dim).to(device)
     m.eval()
     state_scaler = (20.0, 420.0)
     action_scaler = (20.0, 420.0)
@@ -147,27 +141,54 @@ def main(smooth_u_type, H, alpha, optimizer_mode, initial_solution, max_iter, u_
                     optimizer_mode=optimizer_mode,
                     max_iter=max_iter,
                     timeout=5.0,
-                    is_logging=True)
+                    is_logging=is_logging)
     log_history = []
     trajectory_tc = []
     trajectory_ws = []
     for t in range(T - H):
-        print("Now time [{}] / [{}]".format(t, T - H))
+        # print("Now time [{}] / [{}]".format(t, T - H))
         start = time.time()
         action, log = runner.solve(history_tc, history_ws, target[t:t + H, :], initial_ws)
-        print(log['total_time'])
         end = time.time()
-        print('Time computation : {}'.format(end - start))
-        workset = action[0:1, :]
-        initial_ws = torch.cat([action[1:], action[-1:]], dim=0)
+        # Compute workset(un-scaled) of current time and initial_ws(scaled) of next time from action(scaled)
+        if is_del_u:
+            if from_target:
+                workset = target[t:t + 1, :action_dim] + action[0:1, :]
+                if use_previous:
+                    initial_ws = torch.cat([action[1:], action[-1:]], dim=0)
+                else:
+                    initial_ws = torch.zeros_like(action).to(device)
+            else:
+                prev_workset = (history_ws[-1:, :] - action_scaler[0]) / (action_scaler[1] - action_scaler[0])
+                workset = torch.from_numpy(prev_workset).float().to(device) + action[0:1, :]
+                initial_ws = torch.cat([action[1:], action[-1:]], dim=0)
+        else:
+            workset = action[0:1, :]
+            if use_previous:
+                initial_ws = torch.cat([action[1:], action[-1:]], dim=0)
+            else:
+                initial_ws = target[t + 1: t + H + 1, :action_dim]
+
+        # print("Solve : {}".format(log['solve']))
+        log_msg = "[{:3d}] / [{:3d}] | ".format(t, T - H)
+        log_msg += 'Time : {:.3f} | '.format(log['total_time'])
+        log_msg += 'Solve : {} | '.format(log['solve'])
+        log_msg += 'loss :{:.5f} | '.format(log['trajectory_loss'][-1])
+        log_msg += 'num_step : {} \n'.format(len(log['trajectory_loss']))
+        print(log_msg)
+
         log_history.append(log)
+        # plt.title(str(t))
+        # plt.plot(log['trajectory_loss'])
+        # plt.show()
+        # Observe the TC of the next time by using the current action
         with torch.no_grad():
             x0 = torch.from_numpy(history_tc).float().to(device).unsqueeze(dim=0)
             u0 = torch.from_numpy(history_ws).float().to(device).unsqueeze(dim=0)
             x0 = (x0 - state_scaler[0]) / (state_scaler[1] - state_scaler[0])
             u0 = (u0 - action_scaler[0]) / (action_scaler[1] - action_scaler[0])
             h0 = m.filter_history(x0, u0)
-            observed_tc = m.multi_step_prediction(h0, workset.unsqueeze(dim=0)) # [1 x 140]
+            observed_tc = m.multi_step_prediction(h0, workset.unsqueeze(dim=0))  # [1 x 140]
             observed_tc = observed_tc * (state_scaler[1] - state_scaler[0]) + state_scaler[0]  # unscaling
             observed_tc = observed_tc.cpu().detach().numpy()
         workset = workset * (action_scaler[1] - action_scaler[0]) + action_scaler[0]
@@ -180,8 +201,7 @@ def main(smooth_u_type, H, alpha, optimizer_mode, initial_solution, max_iter, u_
         history_ws = np.concatenate([history_ws[1:, :], workset], axis=0)
         trajectory_tc.append(observed_tc[0])
         trajectory_ws.append(workset)
-    # print(log_history)
-    path = 'simulation_data/PreCo'
+    path = 'simulation_data/{}'.format(model_name)
     if not os.path.exists(path):
         os.makedirs(path)
     with open('simulation_data/PreCo/control_log.txt', 'wb') as f:
@@ -197,12 +217,13 @@ def main(smooth_u_type, H, alpha, optimizer_mode, initial_solution, max_iter, u_
 
 
 if __name__ == '__main__':
+    model_name = 'PreCo1'
     smooth_u_type = 'boundary'  # penalty or constraint or boundary, cannot be list
     # Hyper-parameters for MPC optimizer
     H = 100  # Receding horizon
-    alpha = 1000  # will be ignored if smooth_u_type == constraint or boundary
+    alpha = 100  # will be ignored if smooth_u_type == constraint or boundary
     optimizer_mode = 'Adam'  # Adam or LBFGS
     initial_solution = 'previous'  # target or previous
-    max_iter = 50  # Maximum number of optimize  r iterations
+    max_iter = 100  # Maximum number of optimize  r iterations
     u_range = 0.03  # will be ignored if smooth_u_type == penalty, cannot be list
-    main(smooth_u_type, H, alpha, optimizer_mode, initial_solution, max_iter, u_range)
+    main(model_name, smooth_u_type, H, alpha, optimizer_mode, initial_solution, max_iter, u_range)

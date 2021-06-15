@@ -42,7 +42,6 @@ class Runner:
                  timeout=5.0,
                  is_logging=True):
         self.solver = PreCoTorchMPC(model=model,
-                                    time_aggregator='sum',
                                     optimizer_mode=optimizer_mode,
                                     max_iter=max_iter,
                                     alpha=alpha,
@@ -72,8 +71,7 @@ class Runner:
         return action, log
 
 
-def main2(is_control_TC, state_order, action_order, training_H, training_alpha, H, smooth_u_type, alpha, u_range,
-          optimizer_mode, initial_solution, max_iter):
+def main(model_name, receding_history, receding_horizon, alpha, optimizer_mode, smooth_u_type, initial_solution, max_iter, u_range):
     # IPS Code
     plc = ControlPlc()
     plc.setDaemon(True)
@@ -85,9 +83,6 @@ def main2(is_control_TC, state_order, action_order, training_H, training_alpha, 
     stop = False
 
     # Setting
-    state_dim = 140
-    action_dim = 40
-    hidden_dim = 256
     is_del_u = False
     from_target = False
     use_previous = False
@@ -117,10 +112,12 @@ def main2(is_control_TC, state_order, action_order, training_H, training_alpha, 
     is_logging = True
     time_limit = 4.5  # seconds
 
-    # Set Model Filename
-    model_filename = 'model/PreCo.pt'
-    m = get_preco_model(state_dim, action_dim, hidden_dim)
-    m.load_state_dict(torch.load(model_filename, map_location=device))
+    # Load Model
+    state_dim = 140
+    action_dim = 40
+    hidden_dim = 256
+    load_saved = True
+    m = get_preco_model(model_name, load_saved, state_dim, action_dim, hidden_dim).to(device)
     m.eval()
 
     stepTime = 0
@@ -149,7 +146,7 @@ def main2(is_control_TC, state_order, action_order, training_H, training_alpha, 
 
     target_temps = [159.0, 375.0, 375.0, 375.0]  # 375
     # target_temps = [159.0, 400.0, 400.0, 400.0]     #400
-    times = [heatup150, stable150, anneal150 + H]
+    times = [heatup150, stable150, anneal150 + receding_horizon]
 
     target = generate_reference2(target_temps=target_temps, times=times)
 
@@ -174,10 +171,10 @@ def main2(is_control_TC, state_order, action_order, training_H, training_alpha, 
 
     # history_tc: numpy [state_order x state_dim 10*140]
     # history_ws: numpy [action_order x action_dim 49*40]
-    for i in range(state_order - 1):
+    for i in range(receding_history - 1):
         history_tc = np.r_[history_tc, tc_buff]
 
-    for i in range(action_order - 2):
+    for i in range(receding_history - 2):
         history_ws = np.r_[history_ws, ws_buff]
 
     step_log.write('Start FTC')
@@ -230,14 +227,13 @@ def main2(is_control_TC, state_order, action_order, training_H, training_alpha, 
             log_history = []
             trajectory_tc = []
             trajectory_ws = []
-
             if is_del_u:
                 if from_target:
-                    initial_ws = torch.zeros((H, action_dim), device=device)
+                    initial_ws = torch.zeros((receding_horizon, action_dim), device=device)
                 else:
-                    initial_ws = target[1:H + 1, :action_dim] - target[:H, :action_dim]
+                    initial_ws = target[1:receding_horizon + 1, :action_dim] - target[:receding_horizon, :action_dim]
             else:
-                initial_ws = target[:H, :action_dim]  # [H x 40], 0-1 scale
+                initial_ws = target[:receding_horizon, :action_dim]  # [H x 40], 0-1 scale
 
             runner = Runner(model=m,
                             state_scaler=state_scaler,
@@ -277,7 +273,7 @@ def main2(is_control_TC, state_order, action_order, training_H, training_alpha, 
             quot = int(step_time // 5)
             step = quot
 
-            action, log = runner.solve(history_tc, history_ws, target[step:step + H, :], initial_ws)
+            action, log = runner.solve(history_tc, history_ws, target[step:step + receding_horizon, :], initial_ws)
 
             # Processing Workset
             if is_del_u:
@@ -296,7 +292,7 @@ def main2(is_control_TC, state_order, action_order, training_H, training_alpha, 
                 if use_previous:
                     initial_ws = torch.cat([action[1:], action[-1:]], dim=0)
                 else:
-                    initial_ws = target[step + 1: step + H + 1, :action_dim]
+                    initial_ws = target[step + 1: step + receding_horizon + 1, :action_dim]
 
             log_history.append(log)
 
@@ -353,42 +349,24 @@ def main2(is_control_TC, state_order, action_order, training_H, training_alpha, 
 
 if __name__ == '__main__':
     # Model Type
-    is_control_TCs = [False]
-    state_orders = [50]
-    action_orders = [50]
-    training_Hs = [50]
-    training_alphas = [1]
-
-    # Control Type, Assume that this code is only for MPC style
-    smooth_u_type = 'boundary'  # penalty or constraint or boundary, cannot be list
+    model_name = 'PreCo1'
 
     # Hyper-parameters for MPC optimizer
-    Hs = [100]  # Receding horizon
-    alphas = [1000]  # will be ignored if smooth_u_type == constraint or boundary
-    optimizer_modes = ['Adam']  # Adam or LBFGS
-    initial_solutions = ['previous']  # target or previous
-    max_iters = [50]  # Maximum number of optimize  r iterations
+    receding_history = 50
+    receding_horizon = 100
+    alpha = 1000  # will be ignored if smooth_u_type == constraint or boundary
+    optimizer_mode = 'Adam'  # Adam or LBFGS
+    smooth_u_type = 'boundary'  # penalty or constraint or boundary, cannot be list
+    initial_solution = 'previous'  # target or previous
+    max_iter = 100  # Maximum number of optimize  r iterations
     u_range = 0.03  # will be ignored if smooth_u_type == penalty, cannot be list
 
-    for is_control_TC in is_control_TCs:
-        for state_order in state_orders:
-            for action_order in action_orders:
-                for training_alpha in training_alphas:
-                    for training_H in training_Hs:
-                        for H in Hs:
-                            for alpha in alphas:
-                                for optimizer_mode in optimizer_modes:
-                                    for initial_solution in initial_solutions:
-                                        for max_iter in max_iters:
-                                            main2(is_control_TC=is_control_TC,
-                                                  state_order=state_order,
-                                                  action_order=action_order,
-                                                  training_H=training_H,
-                                                  training_alpha=training_alpha,
-                                                  H=H,
-                                                  smooth_u_type=smooth_u_type,
-                                                  alpha=alpha,
-                                                  u_range=u_range,
-                                                  optimizer_mode=optimizer_mode,
-                                                  initial_solution=initial_solution,
-                                                  max_iter=max_iter)
+    main(model_name=model_name,
+         receding_history=receding_history,
+         receding_horizon=receding_horizon,
+         alpha=alpha,
+         optimizer_mode=optimizer_mode,
+         smooth_u_type=smooth_u_type,
+         initial_solution=initial_solution,
+         max_iter=max_iter,
+         u_range=u_range)

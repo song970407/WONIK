@@ -168,7 +168,7 @@ def get_reparam_multi_linear_model(state_dim, action_dim, state_order, action_or
     return m
 
 
-def get_preco_model(state_dim, action_dim, hidden_dim=256, hidden_mlp_dim=256):
+def get_preco_model1(state_dim, action_dim, hidden_dim=256, hidden_mlp_dim=256):
     pred = nn.Sequential(nn.Linear(hidden_dim + action_dim, hidden_mlp_dim),
                          nn.Tanh(),
                          nn.Linear(hidden_mlp_dim, hidden_dim),
@@ -181,6 +181,17 @@ def get_preco_model(state_dim, action_dim, hidden_dim=256, hidden_mlp_dim=256):
                         nn.Tanh(),
                         nn.Linear(hidden_mlp_dim, state_dim))
     m = PreCo(pred, corr, dec, state_dim, action_dim, hidden_dim)
+    return m
+
+name_model_dict={
+    'PreCo1': get_preco_model1
+}
+
+
+def get_preco_model(model_name, load_saved, state_dim, action_dim, hidden_dim, hidden_mlp_dim=256):
+    m = name_model_dict[model_name](state_dim, action_dim, hidden_dim, hidden_mlp_dim)
+    if load_saved:
+        m.load_state_dict(torch.load('model/{}.pt'.format(model_name), map_location='cpu'))
     return m
 
 
