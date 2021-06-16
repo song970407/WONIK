@@ -273,7 +273,7 @@ def main(model_name, receding_history, receding_horizon, alpha, optimizer_mode, 
             quot = int(step_time // 5)
             step = quot
             action, log = runner.solve(history_tc, history_ws, target[step:step + receding_horizon, :], initial_ws)
-
+            log['step'] = step
             # Step 2: Compute the workset(un-scaled) of current time and initial_ws(scaled) of next time
             if is_del_u:
                 if from_target:
