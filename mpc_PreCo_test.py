@@ -146,12 +146,8 @@ def main(model_name, smooth_u_type, H, alpha, optimizer_mode, initial_solution, 
     trajectory_tc = []
     trajectory_ws = []
     for t in range(T - H):
-        # print("Now time [{}] / [{}]".format(t, T - H))
-        start = time.time()
-
         # Step 1: Find the best action trajectory by solving MPC optimization problem
         action, log = runner.solve(history_tc, history_ws, target[t:t + H, :], initial_ws)
-        end = time.time()
 
         # Step 2: Compute the workset(un-scaled) of current time and initial_ws(scaled) of next time from action(scaled)
         if is_del_u:
@@ -172,11 +168,11 @@ def main(model_name, smooth_u_type, H, alpha, optimizer_mode, initial_solution, 
             else:
                 initial_ws = target[t + 1: t + H + 1, :action_dim]
 
-        # print("Solve : {}".format(log['solve']))
         log_msg = "[{:3d}] / [{:3d}] | ".format(t, T - H)
         log_msg += 'Time : {:.3f} | '.format(log['total_time'])
         log_msg += 'Solve : {} | '.format(log['solve'])
-        log_msg += 'loss :{:.5f} | '.format(log['trajectory_loss'][-1])
+        log_msg += 'loss obj:{:.5f} | '.format(log['trajectory_loss_objective'][log['idx_optimal_us_value']])
+        log_msg += 'loss delta_u :{:.5f} | '.format(log['trajectory_loss_delta_u'][log['idx_optimal_us_value']])
         log_msg += 'num_step : {} \n'.format(len(log['trajectory_loss']))
         print(log_msg)
         log_history.append(log)

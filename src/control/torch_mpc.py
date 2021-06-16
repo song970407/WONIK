@@ -474,7 +474,6 @@ class PreCoTorchMPC(nn.Module):
         self.timeout = timeout
         self.is_logging = is_logging
         self.opt_config = opt_config
-
         self.tol = 1e-5
 
     def compute_us_from_del_u(self, initial_u, del_u, weights):
@@ -518,7 +517,7 @@ class PreCoTorchMPC(nn.Module):
             with torch.no_grad():
                 h0 = self.filter_history(history_tc, history_ws)
             # opt = torch.optim.Adam([us], lr=1e-3)
-            opt = torch.optim.Adam([us], lr=0.5 * 1e-2)
+            opt = torch.optim.Adam([us], lr=1.0 * 1e-2)
             scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt)
 
             for i in range(self.max_iter):
