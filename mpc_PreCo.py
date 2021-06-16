@@ -317,13 +317,8 @@ def main(model_name, receding_history, receding_horizon, alpha, optimizer_mode, 
         observed_tc = np.array(plc.glass_tc, dtype='float32').reshape(1, state_dim)
         workset = np.array(plc.heater_sp, dtype='float32')[:action_dim].reshape(1, action_dim)
 
-        history_tc = np.concatenate([history_tc[1:, :],
-                                     observed_tc],
-                                    axis=0)
-        history_ws = np.concatenate([history_ws[1:, :],
-                                     workset],
-                                    axis=0)
-        # step_log.write('TC {} WS {}'.format(observed_tc, workset))
+        history_tc = np.concatenate([history_tc[1:, :], observed_tc], axis=0)
+        history_ws = np.concatenate([history_ws[1:, :], workset], axis=0)
         trajectory_tc.append(observed_tc)
         trajectory_ws.append(workset)
         elapsed = time.time() - start_time
